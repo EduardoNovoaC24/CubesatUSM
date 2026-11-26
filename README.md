@@ -1,31 +1,14 @@
-# CubeSat USM
+# Firmware ESP32 EPS
 
-Proyecto CubeSat del equipo USM. Incluye el OBC STM32 con FreeRTOS, la radio LoRa P2P, el módulo EPS con ESP32, la estación terrestre y los diseños KiCad.
+`esp32_firmware/CindyMoonEPS/CindyMoonEPS.ino` mide voltaje y corriente solar con un INA219 y envía tramas `EPSI` al STM32.
 
-## Ramas
-
-| Rama | Contenido y guía |
+| Señal | Conexión |
 |---|---|
-| [firmware-stm32](../../tree/firmware-stm32) | OBC, ADS-B, IMU, control de actitud y radio SX1262 |
-| [firmware-pico](../../tree/firmware-pico) | Puente Raspberry Pi Pico + SX1262 |
-| [firmware-esp32](../../tree/firmware-esp32) | Telemetría EPS con INA219 |
-| [estacion-lora](../../tree/estacion-lora) | CubeSat - Ground Station y estación local Python |
-| [hardware](../../tree/hardware) | PCB, esquema, montaje, BOM y revisiones |
-| [integracion-adsb](../../tree/integracion-adsb) | Orange Pi, USART1 y radar local |
+| SDA INA219 | ESP32 GPIO21 |
+| SCL INA219 | ESP32 GPIO19 |
+| EPSI UART TX | ESP32 GPIO1 a STM32 PC5 (USART3 RX) |
+| Tierra | GND común |
 
-Las ramas parten de la misma versión integrada. El README de cada rama indica dónde están sus archivos y cómo utilizarlos.
+Abre el sketch en Arduino IDE con el core ESP32 y selecciona tu placa. Verifica que `EPS_SOLAR_SHUNT_UOHM` coincida con el shunt instalado. El ADC de batería está deshabilitado por defecto y precisa un GPIO ADC1 y el divisor real cuando se habilite.
 
-## Usar la estación LoRa
-
-1. Abre [CubeSat - Ground Station](https://eduardonovoac24.github.io/CubesatUSM/) en Chrome de escritorio.
-2. Conecta el Pico LoRa con un cable USB de datos y cierra cualquier monitor serie que use ese puerto.
-3. Pulsa **Conectar Pico**, selecciona su puerto y espera **radio lista**.
-4. Envía `PING` en **Telecomandos** y comprueba que llegue un `ACK` del STM32.
-
-La conexión P2P utiliza el permiso USB de Chrome. Las credenciales LoRaWAN se configuran únicamente en el firmware local. Consulta la [guía del STM32](guias/firmware-stm32.md).
-
-La [estación Python](guias/estacion-lora.md) incluye el panel de telemetría detallado y el radar ADS-B.
-
-## Reproducir el proyecto
-
-Compila desde los archivos fuente con STM32CubeIDE o Arduino IDE según la rama. Los binarios históricos citados en [las notas anteriores](HISTORIAL_FIRMWARE.md) corresponden a compilaciones locales. Las dependencias incluidas mantienen sus avisos de licencia. Consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+El enlace UART usa 115200, 8N1. La rama contiene el cambio para realizar una conversión INA219 por muestra y leer ambos registros tras la indicación de conversión completa. Esta revisión requiere validación en el ESP32 físico.

@@ -1567,7 +1567,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     static uint32_t timed_duration_ms, timed_started_at;
     static bool timed_at_target, timed_braking;
     static int timed_level;
-    static float timed_filtered_rate;
+    static float timed_filtered_rate, timed_brake_level;
     static int timed_direction;
     static uint32_t timed_direction_at;
     bool request_timed_brake = false;
@@ -1718,24 +1718,31 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                 below = false;
             }
             if (timed_braking) {
-                timed_filtered_rate += 0.22f * (rate - timed_filtered_rate);
-                const int direction = fabsf(timed_filtered_rate) <= 0.5f ? 0 :
-                    ((timed_filtered_rate < 0.0f) != wheel->invert ? -1 : 1);
+                const float dt = (float)(now - ramp_at) * 0.001f;
+                ramp_at = now;
+                const float filtered_before = timed_filtered_rate;
+                timed_filtered_rate += (dt / (0.18f + dt)) * (rate - timed_filtered_rate);
+                /* A reaction wheel transfers opposite angular momentum to the body.
+                 * Estimate the remaining correction after the ESC response delay. */
+                const float acceleration = dt > 0.0f ?
+                                           (timed_filtered_rate - filtered_before) / dt : 0.0f;
+                const float predicted_rate = timed_filtered_rate + 0.20f * acceleration;
+                const float correction = predicted_rate * timed_filtered_rate > 0.0f ?
+                                         copysignf(fminf(fabsf(predicted_rate), fabsf(timed_filtered_rate)), rate) : 0.0f;
+                const int direction = fabsf(correction) <= 0.5f || fabsf(rate) <= 0.5f ||
+                                      rate * timed_filtered_rate <= 0.0f ? 0 :
+                                      ((correction < 0.0f) != wheel->invert ? -1 : 1);
                 if (direction != timed_direction) {
                     timed_direction = direction;
                     timed_direction_at = now;
+                    timed_brake_level = (float)wheel->level;
                 }
-                /* Change PWM steadily at high rates and allow the ESC more time
-                 * to respond near rest before applying another correction. */
-                const float speed = fabsf(timed_filtered_rate);
-                const uint32_t correction_ms = speed >= 15.0f ? 150U : speed >= 3.0f ? 250U : 400U;
-                if (!settled && fabsf(rate) > 0.5f && rate * timed_filtered_rate > 0.0f &&
-                    direction && now - timed_direction_at >= 120U && now - ramp_at >= correction_ms) {
-                    ramp_at = now;
-                    const int level = wheel->level + direction;
-                    if (level > P2P_WHEEL_MAX_LEVEL) { wheel->level = P2P_WHEEL_MAX_LEVEL; }
-                    else if (level < -P2P_WHEEL_MAX_LEVEL) { wheel->level = -P2P_WHEEL_MAX_LEVEL; }
-                    else { wheel->level = (int8_t)level; }
+                if (!settled && direction && now - timed_direction_at >= 120U) {
+                    const float levels_per_s = fminf(7.0f, 1.5f + 0.30f * fabsf(correction));
+                    timed_brake_level += (float)direction * levels_per_s * fminf(dt, 0.05f);
+                    timed_brake_level = fmaxf(-P2P_WHEEL_MAX_LEVEL,
+                                             fminf(P2P_WHEEL_MAX_LEVEL, timed_brake_level));
+                    wheel->level = (int8_t)lroundf(timed_brake_level);
                 }
             } else if (!settled && now - ramp_at >= 200U) {
                 ramp_at = now;
@@ -1876,6 +1883,11 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         } else if (action == WHEEL_CMD_TIMED_BRAKE) {
             if (timed_braking) {
                 detail = "TIMED_BRAKING";
+            } else if (timed_duration_ms && wheel->state == WHEEL_ARMING) {
+                timed_duration_ms = 0U;
+                wheel->angles_ddeg[2] = 10 * TIMED_STOPPED;
+                wheel_stop(wheel, phase_at, now);
+                detail = "TIMED_START_CANCELLED";
             } else if (timed_duration_ms && wheel->state == WHEEL_RUNNING && link_ok && rate_ok) {
                 request_timed_brake = true;
                 detail = "TIMED_BRAKING";
@@ -2058,6 +2070,8 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         timed_duration_ms = 0U;
         timed_braking = true;
         timed_filtered_rate = rate;
+        timed_brake_level = ((float)wheel->pulse - wheel_neutral(wheel->profile)) / 5.0f;
+        wheel->level = (int8_t)lroundf(timed_brake_level);
         timed_direction = 0;
         timed_direction_at = now;
         wheel->detumble = DETUMBLE_ACTIVE;

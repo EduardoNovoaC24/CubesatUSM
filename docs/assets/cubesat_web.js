@@ -120,12 +120,9 @@
       !Number.isFinite(wheel.body_rpm)||Math.abs(wheel.body_rpm)>.08?'Espera a que el CubeSat quede quieto.':'';
     document.getElementById('spin-start').disabled=waiting||Boolean(block);
     const brake=document.getElementById('spin-brake');
-    const stop=!adcsFresh||braking||wheel.state===1||wheel.state===2||
-      (wheel.state===3&&(!timed||wheel.spin_result!==0));
-    brake.textContent=stop?'Desarmar':'Frenar';
-    brake.dataset.value=stop?'STOP':'BRAKE';
-    brake.disabled=!picoState.connected||!picoState.capable||
-      (adcsFresh&&![1,2,3].includes(wheel.state));
+    const connected=picoState.connected&&picoState.capable;
+    brake.disabled=!connected;
+    document.getElementById('spin-disarm').disabled=!connected;
     document.getElementById('spin-status').textContent=waiting?'Esperando el ACK del STM32.':
       motion&&wheel.state===1?'Armando el ESC.':
       braking?'Frenando con el giroscopio.':

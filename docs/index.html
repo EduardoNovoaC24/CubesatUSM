@@ -275,7 +275,7 @@
         <div><small id="spin-clock-label">Tiempo de giro</small><b id="spin-elapsed">—</b></div>
         <div><small>Duración ordenada</small><b id="spin-duration">—</b></div>
       </div>
-      <p class="hint">Puedes girar el CubeSat a mano y pulsar Frenar, o usar Encender y despu&eacute;s Frenar. El reposo se confirma tras 10 s con velocidad y aceleraci&oacute;n angular cerca de cero. Desarmar ESC termina la correcci&oacute;n.</p>
+      <p class="hint">Puedes girar el CubeSat a mano y pulsar Frenar, o usar Encender y despu&eacute;s Frenar. La STM32 mide el giro durante el primer segundo y luego corrige. El reposo se confirma tras 10 s con velocidad y aceleraci&oacute;n angular cerca de cero. Desarmar ESC termina la correcci&oacute;n.</p>
       <h3>Prueba angular y seguimiento de luz</h3>
       <div class="command-grid">
         <button class="cmd-btn" id="turn-start" data-cmd="WHEEL" data-value="TURN:180" disabled>Girar 180°</button>
@@ -410,7 +410,7 @@ function render(data){
 async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());}catch(e){document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}finally{setTimeout(poll,1000);}}
 poll();
 </script>
-<script defer src="./assets/cubesat_web.js?v=915e49cce8"></script>
+<script defer src="./assets/cubesat_web.js?v=e441c98511"></script>
 <script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

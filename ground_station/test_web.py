@@ -261,5 +261,17 @@ class DecoderTests(unittest.TestCase):
         self.assertEqual(light['light_azimuth_deg'], 36.8)
         self.assertNotIn('brake_to_5rpm_s', light)
 
+    def test_timed_spin_commands_and_nano_photo_telemetry(self):
+        pico = PicoBridge(None)
+        self.assertEqual(validate_command('WHEEL', ['RUN:1510:5']), 'WHEEL,RUN:1510:5')
+        self.assertEqual(validate_command('WHEEL', ['BRAKE']), 'WHEEL,BRAKE')
+        with self.assertRaises(ValueError):
+            validate_command('WHEEL', ['RUN:1510:61'])
+        pico._handle_payload('Q,10000,0,0,0|WHEEL,2,3,1510,2,500|ADCS,2,1,20,310,16'
+                             '|LIGHT,15,675,650,320,120|MAN,4,50,15100,0,-32768')
+        wheel = pico.snapshot()['wheel']
+        self.assertEqual((wheel['spin_seconds'], wheel['spin_pwm'], wheel['detumble']), (5, 1510, 1))
+        self.assertEqual([wheel[f'light_{i}'] for i in range(1, 5)], [675, 650, 320, 120])
+
 
 if __name__=='__main__': unittest.main()

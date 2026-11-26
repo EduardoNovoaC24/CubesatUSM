@@ -15,14 +15,6 @@ header{height:74px;gap:12px}header .subtitle{font-size:12px}
 .panel-status{border-radius:30px;background:#381016;padding:8px 13px;color:#dba4ac;font-size:12px;border:1px solid var(--line)}
 .dashboard-grid{display:grid;grid-template-columns:minmax(300px,1fr) minmax(300px,1fr);gap:17px}.full-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
 #tab-rueda { max-width:1760px; }
-#tab-rueda .adcs-test { padding:1.15rem; }
-#tab-rueda .brake-chart { min-height:210px; }
-#tab-rueda summary{cursor:pointer;margin-bottom:.65rem}
-.azimuth-scene{touch-action:none;cursor:grab}
-.azimuth-scene:active{cursor:grabbing}
-.azimuth-scene::after{content:"GIRO MEDIDO · VISTA 3D"}
-.azimuth-camera{transform-style:preserve-3d}
-#azimuth-model{transform:rotateY(0deg)}
 @media(min-width:961px){#tab-rueda > .dashboard-grid{grid-template-columns:minmax(300px,.85fr) minmax(0,1.3fr)}}
 .web-card{background:#1e1214;border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0;box-shadow:0 6px 25px #0f090a24}.web-card h3{font-size:14px;color:#fbdbdf;margin:0 0 12px}.web-card p{font-size:12px;color:var(--soft);line-height:1.5}
 .metric-card span{font-size:11px;color:#c98e97;text-transform:uppercase;letter-spacing:.07em}.metric-card strong{display:block;font-size:25px;margin-top:6px;color:#fdecef;font-variant-numeric:tabular-nums}

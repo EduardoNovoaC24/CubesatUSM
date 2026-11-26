@@ -248,5 +248,18 @@ class DecoderTests(unittest.TestCase):
         self.assertEqual(new.send_command('PING', [])['id'], 65535)
         self.assertEqual(new.send_command('PING', [])['id'], 1)
 
+    def test_competition_brake_fields_are_distinct_from_light_azimuth(self):
+        pico = PicoBridge(None)
+        header = 'Q,10000,0,0,0|WHEEL,2,3,1500,0,65535|ADCS,2,2,0,220,16'
+        pico._handle_payload(header + '|MAN,1,18,602,-32768,-32768')
+        brake = pico.snapshot()['wheel']
+        self.assertEqual(brake['brake_to_5rpm_s'], 1.8)
+        self.assertEqual(brake['brake_initial_rpm'], 60.2)
+        pico._handle_payload(header + '|MAN,3,358,0,10,368')
+        light = pico.snapshot()['wheel']
+        self.assertEqual(light['rotation_deg'], 35.8)
+        self.assertEqual(light['light_azimuth_deg'], 36.8)
+        self.assertNotIn('brake_to_5rpm_s', light)
+
 
 if __name__=='__main__': unittest.main()

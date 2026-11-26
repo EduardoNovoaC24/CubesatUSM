@@ -133,6 +133,12 @@
     document.getElementById('spin-elapsed').textContent=timed?fmt(wheel.elapsed_s,' s',1):'—';
     document.getElementById('spin-clock-label').textContent=timed&&wheel.detumble?'Tiempo de frenado':'Tiempo de giro';
     document.getElementById('spin-duration').textContent=timed?fmt(wheel.spin_seconds,' s',0):'—';
+    document.getElementById('manual-ready-status').textContent=!connected?'Conecta el Pico LoRa.':
+      !adcsFresh?'Esperando el estado de la rueda.':
+      wheel.state===2&&wheel.profile===2?'Rueda preparada en neutro. Los jueces ya pueden girar el CubeSat.':
+      wheel.state===1?'Preparando el ESC en neutro.':
+      wheel.state===0?'Prepara la rueda antes de que los jueces giren el CubeSat.':
+      'Rueda en maniobra. Desarma el ESC para preparar otra prueba.';
     if(motion||braking)void keepTimedLink();
   }
   function renderTurn(wheel, fresh, commands){
@@ -161,7 +167,7 @@
       ready?'Rueda armada. Pulsa Girar 180° con el CubeSat quieto.':
       turn&&results[wheel.detumble]?results[wheel.detumble]:
       !available?'Conecta el Pico y verifica el eje y la calibración del giroscopio.':
-      'Con el CubeSat quieto, pulsa Armar para giro.';
+      'Con el CubeSat quieto, pulsa Preparar rueda.';
     if(active||(fresh&&wheel.state===2))void keepTimedLink();
   }
   async function keepTimedLink(){
@@ -191,6 +197,44 @@
     });
     document.getElementById('mission-rotor').dataset.measured=
       String(adcsFresh&&Number.isFinite(wheel.rpm)&&wheel.rpm>0);
+  }
+  function renderLightTracking(wheel, fresh){
+    const readings=[1,2,3,4].map(face=>fresh?wheel['light_'+face]:null);
+    const valid=readings.every(Number.isFinite);
+    const maximum=valid?Math.max(...readings):null;
+    const x=valid?readings[0]-readings[2]:0;
+    const y=valid?readings[1]-readings[3]:0;
+    const directional=valid&&Math.hypot(x,y)>=Math.max(80,.08*readings.reduce((a,b)=>a+b,0));
+    const bodyAngle=directional?Math.atan2(y,x)*180/Math.PI:null;
+    const tracking=fresh&&wheel.maneuver===3;
+    const active=tracking&&wheel.detumble===1;
+    const hasPose=fresh&&[2,3].includes(wheel.maneuver)&&Number.isFinite(wheel.rotation_deg);
+    const rotation=hasPose?wheel.rotation_deg:0;
+    const scene=document.getElementById('light-compass');
+    scene.style.setProperty('--cube-heading',rotation+'deg');
+    if(directional)scene.style.setProperty('--light-heading',(rotation+bodyAngle)+'deg');
+    document.getElementById('light-compass-ray').hidden=!directional;
+    document.getElementById('light-cube-angle').textContent=hasPose?fmt(rotation,'°',1):'Referencia: cara 1';
+    document.getElementById('light-angle-error').textContent=directional?fmt(bodyAngle,'°',1):'—';
+    const leaders=directional?readings.flatMap((value,i)=>value===maximum?[i+1]:[]):[];
+    document.getElementById('light-brightest').textContent=leaders.length?leaders.join(' / ')+' ('+maximum+' ADC)':'—';
+    document.querySelectorAll('[data-light-top-face]').forEach(el=>{
+      const face=Number(el.dataset.lightTopFace);
+      el.classList.toggle('brightest',leaders.includes(face));
+    });
+    const connected=picoState.connected&&picoState.capable;
+    document.getElementById('light-follow').disabled=!connected||turnRequestInFlight||turnCommandId!==undefined||!directional||wheel.state!==2||wheel.profile!==2||
+      !wheel.gyro_calibrated||!Number.isFinite(wheel.body_rpm)||Math.abs(wheel.body_rpm)>.33;
+    const results={3:'Tiempo de prueba agotado.',4:'Lectura de giro inválida.',5:'Seguimiento detenido.',
+      6:'Límite de la rueda alcanzado.',7:'Giro fuera del rango de control.',8:'Se perdió el enlace.',
+      9:'La luz dejó de tener una dirección clara.'};
+    document.getElementById('light-track-status').textContent=active?
+      (directional&&Math.abs(bodyAngle)<=3?'Luz cerca de la cara 1. Seguimiento activo.':'La STM32 está siguiendo la luz.'):
+      tracking&&results[wheel.detumble]?results[wheel.detumble]:
+      !valid?'Esperando muestras recientes de los cuatro fotodiodos.':
+      !directional?'Iluminación pareja o señal débil. Apunta la lámpara desde un costado.':
+      wheel.state===2?'Rueda armada. Pulsa Seguir luz.':'Pulsa Preparar rueda para comenzar.';
+    if(active)void keepTimedLink();
   }
   function renderPanels(data){
     const sample=data.panels;
@@ -298,6 +342,7 @@
     document.getElementById('wheel-level').textContent=wheelFresh?wheel.level:'—';
     const adcsFresh=wheelFresh&&wheel.detumble!=null;
     renderMissionScene(wheel,adcsFresh);
+    renderLightTracking(wheel,adcsFresh);
     document.getElementById('adcs-axis').textContent=adcsFresh&&wheel.axis<3?
       'XYZ'[wheel.axis]+(wheel.inverted?'−':'+'):'—';
     document.getElementById('adcs-rate').textContent=adcsFresh?fmt(wheel.body_rpm,'',2):'—';
@@ -342,6 +387,7 @@
       document.getElementById('pico-status-1').textContent='Sin conexión con backend';
       document.getElementById('relay-status').textContent='Salida del relé: Sin confirmación';
       document.getElementById('wheel-state').textContent='Sin conexión con el servidor';
+      document.getElementById('manual-ready-status').textContent='Sin datos del panel.';
       document.getElementById('spin-status').textContent='Sin conexión con el panel.';
       renderMissionScene(null,false);
       document.getElementById('turn-status').textContent='Sin conexión con el panel.';
@@ -364,7 +410,7 @@
     }else if(btn.dataset.prefix==='AXIS_'){
       args=['AXIS_'+args[0]];
     }
-    const turnRequest=btn.id==='turn-arm'||btn.id==='turn-start';
+    const turnRequest=btn.id==='turn-arm'||btn.id==='turn-start'||btn.id==='light-follow';
     if(turnRequest){
       if(turnRequestInFlight||turnCommandId!==undefined)return;
       turnRequestInFlight=true;

@@ -12,19 +12,13 @@ La web estática usa Web Serial y ejecuta en el navegador los mismos analizadore
 
 ## Panel local con gráficos y radar
 
-### Azimut y el lote de frenado
+### Azimut
 
-En **Prueba 1 · Detumbling**, arma el ESC con el montaje quieto. Cuando el cuerpo esté girando, pulsa **Frenar giro del CubeSat**. La prueba registra la velocidad inicial del cuerpo y el tiempo hasta bajar de 5 rpm por primera vez, además del tiempo de estabilización. Los valores reglamentarios de 60 rpm iniciales y 5 rpm están sujetos a confirmación. La rueda tiene sus propias RPM, que se muestran por separado.
+Actualiza el binario STM32 y el sketch Pico desde la misma revisión. Aplica el eje y la polaridad con la rueda desarmada. Con el CubeSat quieto y el giro calibrado, elige un PWM entre 1505 y 1575 microsegundos y una duración de 1 a 60 segundos. **Encender** arma el ESC y aplica el PWM. El contador empieza al alcanzarlo.
 
-En **Prueba 2 · Azimut por luz**, introduce el azimut inicial de la cara 1. Con los cuatro sensores válidos y el montaje en reposo puedes **Medir sin mover la rueda**, o puedes armar y usar **Seguir luz en Z**. La vista 3D utiliza el giro integrado que informa el STM32 durante el seguimiento. Arrastrar la vista cambia la cámara. Si introduces una referencia independiente del jurado, el panel calcula la menor diferencia angular y muestra el umbral de error correspondiente.
+**Frenar** inicia la compensación por giroscopio en el STM32. Al agotarse el tiempo, el STM32 inicia el mismo frenado. Mientras frena, el segundo botón permite desarmar el ESC. El firmware detiene la rueda si pierde el enlace o la lectura válida del giroscopio.
 
-Actualiza el firmware del STM32 y usa un Pico compatible con `BENCH_ARM`, `RUNS` y `RESULTS`. En **Azimut**, aplica el eje y la polaridad de la rueda. El STM32 recupera el sesgo del giroscopio que esté guardado en FLASH o lo calcula automáticamente al detectar una ventana de reposo. Si hay calibración magnética válida, el filtro incorpora el magnetómetro automáticamente cuando recibe una muestra válida. Los ajustes manuales siguen disponibles en **Calibración avanzada y memoria**.
-
-**Iniciar** selecciona el perfil bidireccional y arma el ESC directamente. Conserva el armado mientras recibe tráfico LoRa y medidas válidas del giroscopio. La prueba manual de 30 segundos sigue disponible en sus controles.
-
-En **Prueba 1**, elige un PWM de 1505 a 1575 µs (niveles +1 a +15) y pulsa **Generar 20 pruebas**. Antes de cada frenado, el firmware mantiene el PWM elegido durante 2 segundos. Luego usa el giroscopio del eje seleccionado para compensar el giro. Registra el tiempo hasta la primera entrada en ±0,5 °/s, siempre que se mantenga dentro durante 2 segundos. El gráfico muestra las repeticiones válidas y destaca la más rápida.
-
-Si el PWM no produce giro medible o el montaje no vuelve al reposo entre repeticiones, se interrumpe el lote y se conservan las mediciones válidas. **Cancelar y desarmar** detiene la tanda. Mantén abierta la pestaña que inició el lote para consultar el progreso y mantener el enlace.
+Los cuatro fotodiodos llegan desde el Arduino Nano por UART4 a 115200 baudios, 8N1. Conecta D1/TX del Nano a PC11 del STM32 (CN7 pin 2) mediante el divisor de 5 V a 3,3 V y conecta GND común. La trama ASCII es `PHOTO,675,650,320,120` seguida de CRLF. El firmware desactiva la captura de luz por los antiguos pines ADC y reenvía A0 a A3 usando el bloque binario LIGHT existente. Una lectura vencida se muestra como ausente.
 
 ### Iniciar el servidor Python
 

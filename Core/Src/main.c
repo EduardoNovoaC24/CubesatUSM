@@ -166,8 +166,13 @@ static uint8_t wheel_sensor_flags;
 static uint16_t photo_samples[P2P_LIGHT_CHANNELS];
 static uint8_t photo_valid_mask;
 static uint32_t photo_sample_ms;
+#define NANO_RX_RING_SIZE 128U
+static volatile uint8_t nano_rx[NANO_RX_RING_SIZE];
+static volatile uint8_t nano_head, nano_tail;
+static volatile bool nano_overrun;
 #define EPS_ADC_CHANNELS 4U
 static uint16_t eps_adc[EPS_ADC_CHANNELS];
+static uint32_t eps_adc_sample_ms;
 static uint8_t eps_valid_mask;
 #if EPS_UART_TELEMETRY
 typedef struct {
@@ -208,6 +213,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM1_Init(void);
+static void nano_photo_init(void);
 #if EPS_UART_TELEMETRY
 static void eps_uart_init(void);
 #endif
@@ -274,6 +280,7 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USART2_UART_Init();
+  nano_photo_init();
 #if EPS_UART_TELEMETRY
   eps_uart_init();
 #endif
@@ -807,12 +814,6 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(WHEEL_TACH_GPIO_Port, &GPIO_InitStruct);
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Pin = PHOTO_GPIOA_Pins;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-  GPIO_InitStruct.Pin = PHOTO_GPIOC_Pins;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 #endif
 #if SOLAR_TELEMETRY
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
@@ -1335,7 +1336,7 @@ static size_t telemetry_solar(uint8_t *payload, size_t capacity, const Telemetry
     taskENTER_CRITICAL();
     EpsUartSample sample = eps_uart_sample;
     const uint16_t test_raw = eps_adc[0];
-    const bool test_valid = (eps_valid_mask & 1U) && HAL_GetTick() - photo_sample_ms <= 250U;
+    const bool test_valid = (eps_valid_mask & 1U) && HAL_GetTick() - eps_adc_sample_ms <= 250U;
     taskEXIT_CRITICAL();
     if (HAL_GetTick() - sample.received_ms > 3500U) { sample = (EpsUartSample){0}; }
     const uint64_t test_denominator = (uint64_t)P2P_LIGHT_MAX * SOLAR_R_BOTTOM_OHM;
@@ -1350,7 +1351,7 @@ static size_t telemetry_solar(uint8_t *payload, size_t capacity, const Telemetry
     uint16_t raw[EPS_ADC_CHANNELS];
     taskENTER_CRITICAL();
     memcpy(raw, eps_adc, sizeof(raw));
-    const unsigned valid = HAL_GetTick() - photo_sample_ms <= 250U ? eps_valid_mask : 0U;
+    const unsigned valid = HAL_GetTick() - eps_adc_sample_ms <= 250U ? eps_valid_mask : 0U;
     taskEXIT_CRITICAL();
     unsigned saturated = 0U;
     unsigned long mv[EPS_ADC_CHANNELS] = {0};
@@ -1479,6 +1480,8 @@ static void wheel_stop(WheelTelemetry *wheel, uint32_t *phase_at, uint32_t now)
     *phase_at = now;
 }
 
+enum { TIMED_RUNNING, TIMED_DONE, TIMED_STOPPED, TIMED_LINK, TIMED_IMU, TIMED_RAMP, TIMED_DIVERGED };
+
 static void wheel_reply(uint16_t id, bool ok, const char *detail)
 {
     char line[64];
@@ -1564,6 +1567,13 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     static int cruise_level;
     static bool below;
     static WheelBrakeBatch batch;
+    static uint32_t timed_duration_ms, timed_started_at;
+    static bool timed_at_target, timed_braking;
+    static int timed_level;
+    static float timed_filtered_rate;
+    static int timed_direction;
+    static uint32_t timed_direction_at;
+    bool request_timed_brake = false;
     float rate = 0.0f;
     bool rate_ok;
     taskENTER_CRITICAL();
@@ -1573,6 +1583,33 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     rate_ok = rate_ok && isfinite(rate);
     const bool link_ok = wheel_link_seen && now - wheel_link_ms < 25000U;
     wheel->body_crpm = rate_ok ? clamp_float_to_i16(rate * (100.0f / 6.0f)) : INT16_MIN;
+    if (timed_duration_ms) {
+        unsigned finish = TIMED_RUNNING;
+        if (wheel->state == WHEEL_STOPPING || wheel->state == WHEEL_IDLE) {
+            finish = TIMED_STOPPED;
+        } else if (!link_ok) {
+            finish = TIMED_LINK;
+        } else if (!rate_ok || imu_stale || fabsf(rate) >= 475.0f) {
+            finish = TIMED_IMU;
+        } else if (wheel->state == WHEEL_RUNNING) {
+            if (!timed_at_target && wheel->pulse == wheel_neutral(wheel->profile) + 5 * timed_level) {
+                timed_at_target = true;
+                timed_started_at = now;
+            }
+            if (timed_at_target) {
+                const uint32_t elapsed = now - timed_started_at;
+                wheel->elapsed_cs = (uint16_t)((elapsed < timed_duration_ms ? elapsed : timed_duration_ms) / 10U);
+                if (elapsed >= timed_duration_ms) { request_timed_brake = true; }
+            } else if (now - *phase_at >= 6000U) {
+                finish = TIMED_RAMP;
+            }
+        }
+        if (finish != TIMED_RUNNING) {
+            wheel->angles_ddeg[2] = (int16_t)(10U * finish);
+            timed_duration_ms = 0U;
+            wheel_stop(wheel, phase_at, now);
+        }
+    }
     if (batch.armed && (!link_ok || !rate_ok || imu_stale || fabsf(rate) >= 475.0f)) {
         wheel_batch_stop(&batch, link_ok ? BRAKE_ERROR_IMU : BRAKE_ERROR_LINK);
         if (wheel->detumble == DETUMBLE_ACTIVE) {
@@ -1609,7 +1646,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     }
     if (wheel->detumble == DETUMBLE_ACTIVE) {
         const uint32_t elapsed = now - detumble_at;
-        const bool braking = wheel->maneuver == WHEEL_MANEUVER_BRAKE;
+        const bool braking = wheel->maneuver == WHEEL_MANEUVER_BRAKE || timed_braking;
         const bool tracking = wheel->maneuver == WHEEL_MANEUVER_LIGHT;
         float light_body = 0.0f;
         const bool light_ok = !tracking || wheel_light_angle(now, light_inverted, &light_body);
@@ -1631,6 +1668,12 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                               DETUMBLE_LIMIT : DETUMBLE_TIMEOUT;
         }
         if (wheel->detumble != DETUMBLE_ACTIVE) {
+            if (timed_braking) {
+                const int failure = wheel->detumble == DETUMBLE_LINK_LOST ? TIMED_LINK :
+                                    wheel->detumble == DETUMBLE_IMU ? TIMED_IMU : TIMED_DIVERGED;
+                wheel->angles_ddeg[2] = (int16_t)(10 * failure);
+                timed_braking = false;
+            }
             if (batch.stage == BRAKE_CONTROL) { wheel_batch_stop(&batch, BRAKE_ERROR_CONTROL); }
             wheel_stop(wheel, phase_at, now);
         } else {
@@ -1659,6 +1702,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                     wheel->elapsed_cs = (uint16_t)((below_at - detumble_at) / 10U);
                     wheel->detumble = DETUMBLE_DONE;
                     completed_at = now;
+                    if (timed_braking) { wheel->angles_ddeg[2] = 10 * TIMED_DONE; }
                     if (batch.stage == BRAKE_CONTROL) {
                         batch.times[batch.count++] = wheel->elapsed_cs;
                         if (batch.count == P2P_BRAKE_TRIALS) {
@@ -1676,7 +1720,22 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             } else {
                 below = false;
             }
-            if (!settled && now - ramp_at >= 200U) {
+            if (timed_braking) {
+                timed_filtered_rate += 0.22f * (rate - timed_filtered_rate);
+                const int direction = fabsf(timed_filtered_rate) <= 0.5f ? 0 :
+                    ((timed_filtered_rate < 0.0f) != wheel->invert ? -1 : 1);
+                if (direction != timed_direction) {
+                    timed_direction = direction;
+                    timed_direction_at = now;
+                }
+                if (!settled && direction && now - timed_direction_at >= 120U && now - ramp_at >= 200U) {
+                    ramp_at = now;
+                    const int level = wheel->level + direction * (fabsf(timed_filtered_rate) >= 30.0f ? 2 : 1);
+                    if (level > P2P_WHEEL_MAX_LEVEL) { wheel->level = P2P_WHEEL_MAX_LEVEL; }
+                    else if (level < -P2P_WHEEL_MAX_LEVEL) { wheel->level = -P2P_WHEEL_MAX_LEVEL; }
+                    else { wheel->level = (int8_t)level; }
+                }
+            } else if (!settled && now - ramp_at >= 200U) {
                 ramp_at = now;
                 /* Constant body rate in cruise, reducing it as the target approaches. */
                 const float desired = braking || fabsf(error) <= tolerance ? 0.0f :
@@ -1743,19 +1802,26 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     if (imu_stale ||
         (wheel->state == WHEEL_READY && !batch.armed && now - *phase_at >= WHEEL_READY_WINDOW_MS) ||
         (wheel->state == WHEEL_RUNNING && wheel->detumble != DETUMBLE_ACTIVE &&
-         !result_hold && !wheel_batch_active(&batch) && now - *phase_at >= 8000U)) {
+         !result_hold && !wheel_batch_active(&batch) && !timed_duration_ms && now - *phase_at >= 8000U)) {
         *enabled = false;
         wheel_stop(wheel, phase_at, now);
     }
     if (wheel->state == WHEEL_ARMING && now - *phase_at >= 3000U) {
-        wheel->state = WHEEL_READY;
+        wheel->state = timed_duration_ms ? WHEEL_RUNNING : WHEEL_READY;
+        if (timed_duration_ms) {
+            wheel->level = (int8_t)timed_level;
+            last_step_at = now;
+        }
         *phase_at = now;
     }
     /* The ADCS elapsed field carries time in READY while no test is running. */
     if (wheel->state == WHEEL_READY) {
         wheel->ready_elapsed_cs = batch.armed ? 0U : (uint16_t)((now - *phase_at) / 10U);
     }
-    if (wheel->state == WHEEL_STOPPING) { batch.armed = false; }
+    if (wheel->state == WHEEL_STOPPING) {
+        batch.armed = false;
+        timed_braking = false;
+    }
     if (wheel->state == WHEEL_STOPPING && now - *phase_at >= 5000U) {
         wheel->state = WHEEL_IDLE;
         wheel->pulse = 0U;
@@ -1781,17 +1847,66 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         const char *detail = "WHEEL_STATUS_IN_TELEMETRY";
         if (action == WHEEL_CMD_STOP) {
             *enabled = false;
+            if (timed_duration_ms || timed_braking) {
+                wheel->angles_ddeg[2] = 10 * TIMED_STOPPED;
+                timed_duration_ms = 0U;
+                timed_braking = false;
+            }
             wheel_batch_stop(&batch, BRAKE_ERROR_STOP);
             if (wheel->detumble == DETUMBLE_ACTIVE) { wheel->detumble = DETUMBLE_STOPPED; }
             wheel_stop(wheel, phase_at, now);
             detail = "WHEEL_STOP_REQUEST_APPLIED";
         } else if (command.id == 0 && action == WHEEL_CMD_PROFILE_OFF) {
             *enabled = false;
+            if (timed_duration_ms || timed_braking) {
+                wheel->angles_ddeg[2] = 10 * TIMED_STOPPED;
+                timed_duration_ms = 0U;
+                timed_braking = false;
+            }
             wheel_batch_stop(&batch, BRAKE_ERROR_STOP);
             wheel_stop(wheel, phase_at, now);
             if (wheel->detumble == DETUMBLE_ACTIVE) { wheel->detumble = DETUMBLE_STOPPED; }
             if (wheel->state == WHEEL_IDLE) { wheel->profile = WHEEL_PROFILE_NONE; }
             else { error = "WAIT_FOR_STOP"; }
+        } else if (action == WHEEL_CMD_TIMED_BRAKE) {
+            if (timed_braking) {
+                detail = "TIMED_BRAKING";
+            } else if (timed_duration_ms && wheel->state == WHEEL_RUNNING && link_ok && rate_ok) {
+                request_timed_brake = true;
+                detail = "TIMED_BRAKING";
+            } else {
+                error = "TIMED_SPIN_REQUIRED";
+            }
+        } else if (timed_duration_ms || timed_braking) {
+            if (action != WHEEL_CMD_STATUS) { error = "TIMED_SPIN_ACTIVE"; }
+        } else if (action > WHEEL_TIMED_BASE) {
+            const unsigned request = (unsigned)(action - WHEEL_TIMED_BASE);
+            const unsigned seconds = request % 100U;
+            const unsigned level = request / 100U;
+            if (!seconds || seconds > P2P_WHEEL_TIMED_MAX_S || !level || level > P2P_WHEEL_MAX_LEVEL) {
+                error = "BAD_ARGS";
+            } else if (wheel->state != WHEEL_IDLE || !link_ok || !rate_ok ||
+                       imu_stale || fabsf(rate) > 0.5f) {
+                error = "CHECK_IDLE_LINK_AXIS_GYRO";
+            } else {
+                *enabled = false;
+                batch.armed = false;
+                timed_level = (int)level;
+                timed_duration_ms = seconds * 1000U;
+                timed_at_target = false;
+                wheel->profile = WHEEL_PROFILE_BIDIR;
+                wheel->detumble = DETUMBLE_NONE;
+                wheel->maneuver = WHEEL_MANEUVER_TIMED;
+                wheel->elapsed_cs = 0U;
+                wheel->angles_ddeg[0] = (int16_t)(seconds * 10U);
+                wheel->angles_ddeg[1] = (int16_t)((1500U + 5U * level) * 10U);
+                wheel->angles_ddeg[2] = TIMED_RUNNING;
+                wheel->angles_ddeg[3] = INT16_MIN;
+                wheel->state = WHEEL_ARMING;
+                wheel->pulse = wheel_neutral(wheel->profile);
+                *phase_at = now;
+                detail = "TIMED_SPIN_ARMING";
+            }
         } else if (action == WHEEL_CMD_BENCH_ARM) {
             if (batch.armed && wheel->state == WHEEL_READY) {
                 detail = "BENCH_READY";
@@ -1932,6 +2047,19 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                               : "[WHEEL] Orden local aplicada\r\n");
         }
     }
+    if (request_timed_brake && timed_duration_ms && wheel->state == WHEEL_RUNNING) {
+        timed_duration_ms = 0U;
+        timed_braking = true;
+        timed_filtered_rate = rate;
+        timed_direction = 0;
+        timed_direction_at = now;
+        wheel->detumble = DETUMBLE_ACTIVE;
+        wheel->elapsed_cs = 0U;
+        initial_speed = fabsf(rate);
+        detumble_at = integrated_at = *phase_at = now;
+        ramp_at = now;
+        below = false;
+    }
     if (wheel->state == WHEEL_RUNNING && now - last_step_at >= 50U) {
         last_step_at = now;
         const int target = (int)wheel_neutral(wheel->profile) + 5 * wheel->level;
@@ -1955,7 +2083,95 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin)
     wheel_tach_seen = true;
 }
 
-static bool photo_adc_init(void)
+static void nano_photo_init(void)
+{
+    __HAL_RCC_UART4_CLK_ENABLE();
+    CLEAR_BIT(RCC->CCIPR, RCC_CCIPR_UART4SEL);
+    GPIO_InitTypeDef rx = {
+        .Pin = GPIO_PIN_11, .Mode = GPIO_MODE_AF_PP, .Pull = GPIO_PULLUP,
+        .Speed = GPIO_SPEED_FREQ_LOW, .Alternate = GPIO_AF8_UART4
+    };
+    HAL_GPIO_Init(GPIOC, &rx);
+    UART4->BRR = (HAL_RCC_GetPCLK1Freq() + 57600U) / 115200U;
+    UART4->CR3 = USART_CR3_EIE;
+    UART4->CR1 = USART_CR1_RE | USART_CR1_RXNEIE | USART_CR1_UE;
+    HAL_NVIC_SetPriority(UART4_IRQn, 6U, 0U);
+    HAL_NVIC_EnableIRQ(UART4_IRQn);
+}
+
+void UART4_IRQHandler(void)
+{
+    const uint32_t status = UART4->ISR;
+    const bool bad = (status & (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE)) != 0U;
+    if (bad) {
+        UART4->ICR = USART_ICR_ORECF | USART_ICR_FECF | USART_ICR_NECF;
+        nano_overrun = true;
+    }
+    if (status & USART_ISR_RXNE) {
+        const uint8_t byte = (uint8_t)UART4->RDR;
+        if (nano_overrun) { return; }
+        const uint8_t next = (uint8_t)((nano_head + 1U) % NANO_RX_RING_SIZE);
+        if (next == nano_tail) { nano_overrun = true; }
+        else {
+            nano_rx[nano_head] = byte;
+            nano_head = next;
+        }
+    }
+}
+
+static bool nano_photo_parse(const char *line, uint16_t samples[P2P_LIGHT_CHANNELS])
+{
+    if (strncmp(line, "PHOTO,", 6U) != 0) { return false; }
+    const char *field = line + 6;
+    for (unsigned i = 0; i < P2P_LIGHT_CHANNELS; ++i) {
+        if (*field < '0' || *field > '9') { return false; }
+        char *end;
+        const unsigned long value = strtoul(field, &end, 10);
+        const char separator = i + 1U == P2P_LIGHT_CHANNELS ? '\0' : ',';
+        if (value > 1023UL || *end != separator) { return false; }
+        samples[i] = (uint16_t)value;
+        field = end + 1;
+    }
+    return true;
+}
+
+static void nano_photo_poll(void)
+{
+    static char line[32];
+    static uint8_t length;
+    static bool discard;
+    taskENTER_CRITICAL();
+    if (nano_overrun) {
+        nano_tail = nano_head;
+        nano_overrun = false;
+        length = 0;
+        discard = true;
+    }
+    taskEXIT_CRITICAL();
+    for (unsigned i = 0; i < NANO_RX_RING_SIZE && nano_tail != nano_head; ++i) {
+        const uint8_t byte = nano_rx[nano_tail];
+        nano_tail = (uint8_t)((nano_tail + 1U) % NANO_RX_RING_SIZE);
+        if (byte == '\n') {
+            if (length && line[length - 1U] == '\r') { --length; }
+            line[length] = '\0';
+            uint16_t samples[P2P_LIGHT_CHANNELS];
+            if (!discard && nano_photo_parse(line, samples)) {
+                taskENTER_CRITICAL();
+                memcpy(photo_samples, samples, sizeof(photo_samples));
+                photo_valid_mask = 15U;
+                photo_sample_ms = HAL_GetTick();
+                taskEXIT_CRITICAL();
+            }
+            length = 0;
+            discard = false;
+        } else if (!discard) {
+            if ((byte != '\r' && (byte < 32U || byte > 126U)) || length >= sizeof(line) - 1U) { discard = true; }
+            else { line[length++] = (char)byte; }
+        }
+    }
+}
+
+static bool eps_adc_init(void)
 {
     __HAL_RCC_ADC_CLK_ENABLE();
     MODIFY_REG(ADC123_COMMON->CCR, ADC_CCR_CKMODE, ADC_CCR_CKMODE);
@@ -1970,8 +2186,7 @@ static bool photo_adc_init(void)
     }
     HAL_Delay(1U);
     /* HCLK/4, single-ended 12-bit samples, 640.5 cycles per channel. */
-    ADC1->SMPR1 = ADC_SMPR1_SMP3_Msk | ADC_SMPR1_SMP4_Msk |
-                  ADC_SMPR1_SMP5_Msk | ADC_SMPR1_SMP6_Msk;
+    ADC1->SMPR1 = SOLAR_TELEMETRY ? ADC_SMPR1_SMP5_Msk | ADC_SMPR1_SMP6_Msk : 0U;
     if (SOLAR_TELEMETRY) { ADC1->SMPR2 = ADC_SMPR2_SMP13_Msk | ADC_SMPR2_SMP14_Msk; }
     else if (EPS_UART_TELEMETRY) { ADC1->SMPR2 = ADC_SMPR2_SMP13_Msk; }
     ADC1->ISR = ADC_ISR_ADRDY;
@@ -2002,17 +2217,8 @@ static bool analog_read(uint8_t channel, uint16_t *sample)
     return true;
 }
 
-static void photo_adc_sample(void)
+static void eps_adc_sample(void)
 {
-    /* Face order follows CN7 pins 28, 30, 35, 37. */
-    static const uint8_t channels[P2P_LIGHT_CHANNELS] = {5U, 6U, 3U, 4U};
-    uint16_t samples[P2P_LIGHT_CHANNELS] = {0};
-    uint8_t valid = 0U;
-    /* In the EPS build PA0 and PA1 are reserved for two voltage inputs. */
-    for (unsigned face = SOLAR_TELEMETRY ? 2U : 0U;
-         WHEEL_BENCH_MODE && face < P2P_LIGHT_CHANNELS; ++face) {
-        if (analog_read(channels[face], &samples[face])) { valid |= (uint8_t)(1U << face); }
-    }
     static const uint8_t eps_channels[EPS_ADC_CHANNELS] = {13U, 14U, 5U, 6U};
     uint16_t readings[EPS_ADC_CHANNELS] = {0};
     uint8_t eps_valid = 0U;
@@ -2021,11 +2227,9 @@ static void photo_adc_sample(void)
         if (analog_read(eps_channels[i], &readings[i])) { eps_valid |= (uint8_t)(1U << i); }
     }
     taskENTER_CRITICAL();
-    memcpy(photo_samples, samples, sizeof(photo_samples));
-    photo_valid_mask = valid;
     memcpy(eps_adc, readings, sizeof(readings));
     eps_valid_mask = eps_valid;
-    photo_sample_ms = HAL_GetTick();
+    eps_adc_sample_ms = HAL_GetTick();
     taskEXIT_CRITICAL();
 }
 
@@ -2146,9 +2350,9 @@ void Task_Safety(void *argument)
     WheelTelemetry wheel = { .axis = 3U, .body_crpm = INT16_MIN };
     uint32_t phase_at = 0U, enabled_at = 0U;
     bool enabled = false;
-    const bool photo_enabled = WHEEL_BENCH_MODE || SOLAR_TELEMETRY || EPS_UART_TELEMETRY;
-    const bool photo_ready = photo_enabled && photo_adc_init();
-    if (photo_enabled && !photo_ready) { uart2_write("[PHOTO] ADC1 no disponible\r\n"); }
+    const bool eps_adc_enabled = SOLAR_TELEMETRY || EPS_UART_TELEMETRY;
+    const bool eps_adc_ready = eps_adc_enabled && eps_adc_init();
+    if (eps_adc_enabled && !eps_adc_ready) { uart2_write("[EPS] ADC1 no disponible\r\n"); }
 
     for (;;) {
         const uint32_t now_ms = HAL_GetTick();
@@ -2164,7 +2368,8 @@ void Task_Safety(void *argument)
         } else if (!imu_stale) {
             imu_fault_latched = false;
         }
-        if (photo_ready) { photo_adc_sample(); }
+        nano_photo_poll();
+        if (eps_adc_ready) { eps_adc_sample(); }
 #if EPS_UART_TELEMETRY
         eps_uart_poll();
 #endif

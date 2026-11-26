@@ -105,7 +105,12 @@ def validate_command(name: str, args: list) -> str:
         if len(args) != 1:
             raise ValueError('Indica la orden de rueda')
         action = args[0]
-        if re.fullmatch(r'RUNS:[0-9]{4}', action):
+        if re.fullmatch(r'RUN:[0-9]{4}:[0-9]{1,2}', action):
+            pulse, seconds = map(int, action.split(':')[1:])
+            if not 1505 <= pulse <= 1575 or pulse % 5 or not 1 <= seconds <= 60:
+                raise ValueError('PWM de 1505 a 1575 µs en pasos de 5 y duración de 1 a 60 s')
+            args = [f'RUN:{pulse}:{seconds}']
+        elif re.fullmatch(r'RUNS:[0-9]{4}', action):
             pulse = int(action.split(':')[1])
             if not 1505 <= pulse <= 1575 or pulse % 5:
                 raise ValueError('PWM entre 1505 y 1575 µs, en pasos de 5')
@@ -117,7 +122,7 @@ def validate_command(name: str, args: list) -> str:
                 raise ValueError('El azimut inicial debe estar entre 0° y 359°')
         elif re.fullmatch(r'AXIS_[XYZ][+-]', action):
             pass
-        elif action not in ('ARM','STOP','STATUS','DETUMBLE','PROFILE_AIR','PROFILE_BIDIR','ENABLE','BENCH_ARM','RESULTS'):
+        elif action not in ('ARM','STOP','STATUS','DETUMBLE','PROFILE_AIR','PROFILE_BIDIR','ENABLE','BENCH_ARM','RESULTS','BRAKE'):
             if not re.fullmatch(r'[+-]?[0-9]{1,2}', action) or not 1 <= abs(int(action)) <= 15:
                 raise ValueError('El nivel de prueba debe estar entre −15 y +15, distinto de cero')
             args = [str(int(action))]
@@ -303,7 +308,7 @@ class PicoBridge:
                      for record in records if record.startswith('ADCS,')), None)
         light = next((re.fullmatch(r'LIGHT,(\d{1,2}),(\d{1,4}),(\d{1,4}),(\d{1,4}),(\d{1,4})', record)
                       for record in records if record.startswith('LIGHT,')), None)
-        maneuver = next((re.fullmatch(r'MAN,([0-3]),(-?\d{1,5}),(-?\d{1,5}),(-?\d{1,5}),(-?\d{1,5})', record)
+        maneuver = next((re.fullmatch(r'MAN,([0-4]),(-?\d{1,5}),(-?\d{1,5}),(-?\d{1,5}),(-?\d{1,5})', record)
                          for record in records if record.startswith('MAN,')), None)
         for record in records:
             if record.startswith('$ADSB,') and self.on_aircraft:
@@ -332,6 +337,7 @@ class PicoBridge:
                                 mode, *angles = map(int, maneuver.groups())
                                 if mode and all(-32768 <= angle <= 32767 for angle in angles):
                                     keys = (('brake_to_5rpm_s', 'brake_initial_rpm') if mode == 1 else
+                                            ('spin_seconds', 'spin_pwm', 'spin_result') if mode == 4 else
                                             ('rotation_deg', 'target_deg', 'reference_deg', 'light_azimuth_deg'))
                                     self.wheel.update(maneuver=mode, **{
                                         key: None if angle == -32768 else angle / 10

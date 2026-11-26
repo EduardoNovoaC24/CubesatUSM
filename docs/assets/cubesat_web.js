@@ -21,9 +21,8 @@
     }
   });
   let picoState={capable:false,connected:false};
-  let benchStartId, resultsId;
-  let benchWatch=false;
-  let resultsAt=0;
+  let spinStatusAt=0;
+  let spinCommandId;
   const lanKey=document.getElementById('lan-key');
   const lanOperator=document.getElementById('lan-operator');
   const lanStatus=document.getElementById('lan-status');
@@ -46,24 +45,6 @@
       lanFeedback.textContent='';
     }catch(error){lanFeedback.textContent=error.message;}
   });
-  let wheelTelemetryAt=0;
-  const wheelSetpoint=document.querySelector('[data-cmd="WHEEL"][data-arg]');
-  const wheelCountdown=document.getElementById('wheel-ready-countdown');
-  const wheelReadyWindow=20;
-  function updateWheelSetpoint(){
-    const wheel=picoState.wheel;
-    const age=wheel?wheel.age+(performance.now()-wheelTelemetryAt)/1000:Infinity;
-    const fresh=picoState.connected&&picoState.capable&&age<=25;
-    const ready=fresh&&wheel.state===2;
-    const seconds=ready?Math.max(0,Math.ceil(wheelReadyWindow-(wheel.elapsed_s??0)-age)):0;
-    const manualRunning=fresh&&wheel.state===3&&![1,2].includes(wheel.detumble);
-    const benchArmed=picoState.brake_batch?.armed;
-    wheelSetpoint.disabled=benchArmed||!(seconds>0||manualRunning);
-    wheelCountdown.hidden=!ready||benchArmed;
-    wheelCountdown.textContent=seconds>0
-      ? 'Lista. Tiempo estimado para aplicar el nivel '+seconds+' s.'
-      : 'Plazo vencido. Espera a que la rueda vuelva a Desarmada.';
-  }
   const fmt=(v,unit='',places=0)=>typeof v==='number'&&Number.isFinite(v)?v.toFixed(places)+unit:'—';
   const modelAxis=document.getElementById('model-long-axis');
   try{
@@ -95,65 +76,6 @@
     const matrix='matrix3d('+m.join(',')+')';
     ['sat-model-1','sat-model-2'].forEach(id=>document.getElementById(id).style.transform=matrix);
   }
-  const azimuthScene=document.getElementById('azimuth-scene');
-  const azimuthCamera=document.getElementById('azimuth-camera');
-  const azimuthModel=document.getElementById('azimuth-model');
-  const orbit=document.getElementById('azimuth-orbit');
-  const elevation=document.getElementById('azimuth-elevation');
-  const judgeAzimuth=document.getElementById('true-azimuth');
-  const measureLight=document.getElementById('measure-light');
-  let lightMeasurement=null;
-  let cameraDrag;
-  const wrapDegrees=angle=>((angle%360)+360)%360;
-  const showCamera=()=>azimuthCamera.style.transform=`rotateX(${elevation.value}deg) rotateY(${orbit.value}deg)`;
-  [orbit,elevation].forEach(input=>input.addEventListener('input',showCamera));
-  showCamera();
-  azimuthScene.addEventListener('pointerdown',event=>{
-    if(event.button!==0)return;
-    azimuthScene.setPointerCapture(event.pointerId);
-    cameraDrag={x:event.clientX,y:event.clientY,az:Number(orbit.value),el:Number(elevation.value)};
-  });
-  azimuthScene.addEventListener('pointermove',event=>{
-    if(!cameraDrag||!azimuthScene.hasPointerCapture(event.pointerId))return;
-    orbit.value=wrapDegrees(cameraDrag.az+(event.clientX-cameraDrag.x)*.6+180)-180;
-    elevation.value=Math.max(-75,Math.min(75,cameraDrag.el-(event.clientY-cameraDrag.y)*.6));
-    showCamera();
-  });
-  azimuthScene.addEventListener('lostpointercapture',()=>cameraDrag=undefined);
-
-  function stationaryLight(wheel){
-    if(!wheel||wheel.age>25||![0,2].includes(wheel.state)||!Number.isFinite(wheel.body_rpm)||Math.abs(wheel.body_rpm)>.08)return null;
-    const channels=[wheel.light_1,wheel.light_2,wheel.light_3,wheel.light_4];
-    if(!channels.every(Number.isFinite))return null;
-    const sign=document.getElementById('light-invert').checked?-1:1;
-    const x=sign*(channels[0]-channels[2]),y=sign*(channels[1]-channels[3]);
-    return Math.hypot(x,y)>=80?Math.atan2(y,x)*180/Math.PI:null;
-  }
-  function renderAzimuth(wheel){
-    const tracking=wheel?.maneuver===3;
-    const rotation=tracking?wheel.rotation_deg:null;
-    const reference=lightMeasurement?.reference??(tracking?wheel.reference_deg:null);
-    const light=lightMeasurement?.light??(tracking?wheel.light_azimuth_deg:null);
-    document.getElementById('maneuver-reference').textContent=fmt(reference,'°',1);
-    document.getElementById('maneuver-light').textContent=fmt(light,'°',1);
-    document.getElementById('azimuth-rotation').textContent=fmt(rotation,'°',1);
-    if(Number.isFinite(rotation))azimuthModel.style.transform=`rotateY(${-rotation}deg)`;
-    else azimuthModel.style.transform='';
-    const target=judgeAzimuth.valueAsNumber;
-    const error=Number.isFinite(light)&&Number.isFinite(target)&&judgeAzimuth.validity.valid?
-      Math.abs(wrapDegrees(light-target+180)-180):null;
-    document.getElementById('azimuth-error').textContent=error===null?'—':
-      error.toFixed(1)+'° · '+(error<=5?'≤5°':error<=15?'≤15°':error<=30?'≤30°':'>30°');
-    measureLight.disabled=stationaryLight(wheel)===null;
-  }
-  measureLight.addEventListener('click',()=>{
-    const angle=stationaryLight(picoState.wheel);
-    const reference=document.getElementById('reference-deg');
-    if(angle===null||!reference.reportValidity())return;
-    lightMeasurement={reference:reference.valueAsNumber,light:wrapDegrees(reference.valueAsNumber+angle)};
-    renderAzimuth(picoState.wheel);
-  });
-  judgeAzimuth.addEventListener('input',()=>renderAzimuth(picoState.wheel?.age<=25?picoState.wheel:null));
   function drawChart(id,history,keys,colors){
     const svg=document.getElementById(id);if(!svg)return;
     const ns='http://www.w3.org/2000/svg';svg.replaceChildren();svg.setAttribute('viewBox','0 0 540 218');
@@ -181,74 +103,44 @@
     }
     add('text',{x:526,y:210,'text-anchor':'end',fill:'#b97a83','font-size':11},'Últimos '+Math.round(dt)+' s');
   }
-  function benchStartBlock(wheel, wheelFresh, adcsFresh, batch) {
-    if(!wheelFresh)return 'Esperando telemetría reciente de la rueda por LoRa.';
-    if(!adcsFresh)return 'Llegan datos de la rueda, pero falta su estado ADCS.';
-    if(wheel.axis>=3)return 'Pulsa Aplicar eje con el eje y la polaridad del montaje.';
-    if(!wheel.gyro_calibrated)return 'Giroscopio sin calibrar. Deja quieto el CubeSat para que el STM32 calcule el bias.';
-    if(wheel.state===4)return 'La rueda está deteniéndose. Espera a que indique Desarmada.';
-    if(wheel.state===1)return 'El ESC se está armando. Espera a que indique Lista.';
-    if(wheel.state===3)return 'Hay una prueba en curso. Para cambiar de prueba, pulsa Detener y espera a que indique Desarmada.';
-    if(wheel.state===2&&!batch?.armed)return 'La rueda está armada en modo manual. Pulsa Detener y espera a que indique Desarmada.';
-    if(!Number.isFinite(wheel.body_rpm))return 'Esperando una lectura válida del giroscopio en el eje aplicado.';
-    if(Math.abs(wheel.body_rpm)>0.08)return 'Espera a que el CubeSat quede quieto antes de iniciar.';
-    return '';
+  function renderTimedSpin(wheel, adcsFresh, commands){
+    const timed=adcsFresh&&wheel.maneuver===4;
+    const motion=timed&&wheel.spin_result===0&&[1,3].includes(wheel.state);
+    const braking=timed&&wheel.detumble===1;
+    const resultLabels=['Girando','Giro estabilizado.','Desarmado por operador.','Detenido por pérdida de enlace.','Detenido por una lectura de giro inválida.','No se alcanzó el PWM pedido.','Frenado interrumpido: no se estabilizó.'];
+    const pending=commands?.find(cmd=>cmd.id===spinCommandId);
+    const waiting=spinCommandId!==undefined&&(!pending||['EN COLA','PICO QUEUED','PICO SENT'].includes(pending.state));
+    if(spinCommandId!==undefined&&!waiting)spinCommandId=undefined;
+    const block=!adcsFresh?'Esperando telemetría reciente de la rueda.':
+      wheel.axis>=3?'Aplica el eje y la polaridad del montaje.':
+      !wheel.gyro_calibrated?'Espera la calibración del giroscopio con el CubeSat quieto.':
+      wheel.state!==0?'La rueda debe estar desarmada.':
+      !Number.isFinite(wheel.body_rpm)||Math.abs(wheel.body_rpm)>.08?'Espera a que el CubeSat quede quieto.':'';
+    document.getElementById('spin-start').disabled=waiting||Boolean(block);
+    const brake=document.getElementById('spin-brake');
+    const stop=!adcsFresh||braking||wheel.state===1||wheel.state===2||
+      (wheel.state===3&&(!timed||wheel.spin_result!==0));
+    brake.textContent=stop?'Desarmar':'Frenar';
+    brake.dataset.value=stop?'STOP':'BRAKE';
+    brake.disabled=!picoState.connected||!picoState.capable||
+      (adcsFresh&&![1,2,3].includes(wheel.state));
+    document.getElementById('spin-status').textContent=waiting?'Esperando el ACK del STM32.':
+      motion&&wheel.state===1?'Armando el ESC.':
+      braking?'Frenando con el giroscopio.':
+      motion?'Giro temporizado en curso.':
+      timed&&wheel.spin_result?resultLabels[wheel.spin_result]||block:
+      block||'Listo para iniciar el giro.';
+    document.getElementById('spin-elapsed').textContent=timed?fmt(wheel.elapsed_s,' s',1):'—';
+    document.getElementById('spin-clock-label').textContent=timed&&wheel.detumble?'Tiempo de frenado':'Tiempo de giro';
+    document.getElementById('spin-duration').textContent=timed?fmt(wheel.spin_seconds,' s',0):'—';
+    if(motion)void keepTimedLink();
   }
-  function renderBrakeBatch(batch, wheelReady, benchBlock) {
-    const seconds=batch?.seconds||[];
-    const states=['Sin tanda','Acelerando','Frenando con el giroscopio','Preparando la siguiente repetición','Tanda completa','Tanda interrumpida'];
-    const errors=['','Cancelada','Giro no válido','Se perdió el enlace','El PWM no produjo un giro medible','El frenado no se estabilizó','El montaje no volvió al reposo inicial'];
-    if(batch)document.getElementById('adcs-result').textContent=
-      states[batch.phase]+(batch.pulse?' · '+batch.pulse+' µs':'')+(batch.error?' · '+errors[batch.error]:'');
-    document.getElementById('brake-count').textContent=seconds.length+' / 20';
-    document.getElementById('brake-best').textContent=seconds.length?Math.min(...seconds).toFixed(2)+' s':'—';
-    const running=batch?.phase>=1&&batch?.phase<=3;
-    const canRun=wheelReady&&batch?.armed&&!running&&!benchBlock;
-    document.querySelector('[data-prefix="RUNS"]').disabled=!canRun;
-    let generateHint='Pulsa Iniciar y espera la confirmación del STM32.';
-    if(running)generateHint='La tanda ya está en curso.';
-    else if(canRun)generateHint='Armado bidireccional confirmado. Puedes generar las 20 pruebas.';
-    else if(batch?.armed&&benchBlock)generateHint=benchBlock;
-    document.getElementById('brake-generate-status').textContent=generateHint;
-    const svg=document.getElementById('plot-brake');
-    svg.replaceChildren();
-    svg.setAttribute('viewBox','0 0 580 216');
-    const add=(name,attrs,text)=>{
-      const item=document.createElementNS('http://www.w3.org/2000/svg',name);
-      for(const [key,value] of Object.entries(attrs))item.setAttribute(key,value);
-      if(text!==undefined)item.textContent=text;
-      svg.append(item);
-    };
-    if(!seconds.length){
-      add('text',{x:290,y:112,'text-anchor':'middle',fill:'currentColor','font-size':14},'Esperando mediciones');
-      return;
-    }
-    const max=Math.max(1,...seconds)*1.08;
-    for(let i=0;i<=4;i++){
-      const y=180-i*39;
-      add('line',{x1:41,y1:y,x2:572,y2:y,stroke:'var(--line)','stroke-width':1});
-      add('text',{x:37,y:y+4,'text-anchor':'end',fill:'currentColor','font-size':11},(max*i/4).toFixed(1));
-    }
-    const best=Math.min(...seconds);
-    for(let i=0;i<20;i++){
-      const x=44+i*26.3;
-      if(i<seconds.length){
-        const height=Math.max(2,156*seconds[i]/max);
-        add('rect',{x,y:180-height,width:20,height,rx:3,fill:seconds[i]===best?'var(--lime)':'var(--aqua)'});
-      }
-      if(i===0||i%5===4)add('text',{x:x+10,y:198,'text-anchor':'middle',fill:'currentColor','font-size':11},i+1);
-    }
-    add('text',{x:41,y:14,fill:'currentColor','font-size':11},'Tiempo (s)');
-  }
-  async function pollBrakeBatch(){
-    if(!benchWatch||!picoState.connected||!picoState.capable||
-      (lanKey&&!lanKey.value.trim())||performance.now()-resultsAt<7500)return;
-    resultsAt=performance.now();
+  async function keepTimedLink(){
+    if((lanKey&&!lanKey.value.trim())||performance.now()-spinStatusAt<8000)return;
+    spinStatusAt=performance.now();
     try{
-      const response=await (window.stationRequest||fetch)('/api/pico/command',
-        commandRequest({command:'WHEEL',args:['RESULTS']}));
-      if(response.ok)resultsId=(await response.json()).id;
-    }catch{ /* The firmware stops if it loses RF traffic. */ }
+      await (window.stationRequest||fetch)('/api/pico/command',commandRequest({command:'WHEEL',args:['STATUS']}));
+    }catch{ /* The STM32 stops independently if the link is lost. */ }
   }
   const chartDefs=[['plot-q',['q0','q1','q2','q3'],['#f47588','#4de7ae','#ffd37d','#c7a3ff']],
                    ['plot-norm',['norm'],['#4fe5c0']],
@@ -256,14 +148,13 @@
                    ['plot-gyro',['gx','gy','gz'],['#f47588','#4de7ae','#ffd37d']],
                    ['plot-mag',['mx','my','mz'],['#f47588','#4de7ae','#ffd37d']]];
   function renderMissionScene(wheel, adcsFresh){
-    const inverted=document.getElementById('light-invert').checked;
     document.querySelectorAll('[data-mission-light]').forEach(sensor=>{
       const face=sensor.dataset.missionLight;
       const value=adcsFresh?wheel['light_'+face]:null;
       const valid=Number.isFinite(value);
-      const signal=valid?(inverted?4095-value:value):0;
+      const signal=valid?value:0;
       sensor.dataset.state=valid?'measured':'unknown';
-      sensor.style.setProperty('--signal',String(signal/4095));
+      sensor.style.setProperty('--signal',String(Math.min(signal,1023)/1023));
       document.querySelector('[data-light-value="'+face+'"]').textContent=valid?value+' ADC':'—';
       const meter=document.querySelector('[data-light-meter="'+face+'"]');
       meter.hidden=!valid;
@@ -387,65 +278,16 @@
     document.getElementById('wheel-pulse').textContent=wheelFresh?(wheel.pulse?wheel.pulse+' µs':'Sin pulsos'):'—';
     document.getElementById('wheel-level').textContent=wheelFresh?wheel.level:'—';
     const wheelIdle=wheelFresh&&wheel.state===0;
-    document.querySelectorAll('[data-cmd="WHEEL"][data-value^="PROFILE_"]').forEach(btn=>{
-      btn.disabled=!wheelIdle;
-    });
-    document.querySelector('[data-cmd="WHEEL"][data-value="ENABLE"]').disabled=!(wheelIdle&&wheel.profile);
-    document.querySelector('[data-cmd="WHEEL"][data-value="ARM"]').disabled=!(wheelIdle&&wheel.profile);
-    wheelTelemetryAt=performance.now();
-    updateWheelSetpoint();
     const adcsFresh=wheelFresh&&wheel.detumble!=null;
     renderMissionScene(wheel,adcsFresh);
-    const results=['Sin prueba','Maniobra en curso','Estabilizado','Tiempo agotado',
-      'Giro no válido','Detenida por operador','Límite de mando','Giro en aumento','Enlace perdido','Luz sin dirección detectable'];
     document.getElementById('adcs-axis').textContent=adcsFresh&&wheel.axis<3?
       'XYZ'[wheel.axis]+(wheel.inverted?'−':'+'):'—';
     document.getElementById('adcs-rate').textContent=adcsFresh?fmt(wheel.body_rpm,'',2):'—';
-    const activeTest=adcsFresh?(wheel.maneuver??(wheel.detumble?1:0)):0;
-    document.getElementById('adcs-elapsed').textContent=activeTest===1?fmt(wheel.elapsed_s,' s',2):'—';
-    document.getElementById('brake-start-rpm').textContent=activeTest===1?fmt(wheel.brake_initial_rpm,' rpm',1):'—';
-    document.getElementById('brake-competition-time').textContent=activeTest===1?
-      (Number.isFinite(wheel.brake_initial_rpm)&&wheel.brake_initial_rpm<5?'Inicio bajo 5 rpm':
-        fmt(wheel.brake_to_5rpm_s,' s',1)):'—';
-    document.querySelectorAll('[data-test-result]').forEach(el=>{
-      const status=activeTest===Number(el.dataset.testResult)?results[wheel.detumble]:
-        adcsFresh?'Sin prueba':'Sin telemetría ADCS reciente';
-      if(el.textContent!==status)el.textContent=status;
-    });
     document.getElementById('adcs-sensors').textContent=adcsFresh?
       (wheel.gyro_calibrated?'Giro calibrado':'Giro sin calibrar')+' · '+
-      (wheel.mag_valid?(wheel.mag_calibrated?'Mag calibrado':'Mag sin calibrar'):'Mag sin dato válido')+
-      ' · '+(wheel.fusion_9dof?'Fusión 9DOF':'Fusión 6DOF'):'Esperando datos del GY‑91';
+      (wheel.fusion_9dof?'Fusión 9DOF':'Fusión 6DOF'):'Esperando datos del GY‑91';
     document.querySelector('[data-prefix="AXIS_"]').disabled=!wheelIdle;
-    const maneuverReady=adcsFresh&&wheel.profile===2&&wheel.state===2&&wheel.axis<3&&
-      Number.isFinite(wheel.body_rpm);
-    const bench= data.brake_batch;
-    const benchCommand=data.commands?.find(cmd=>cmd.id===benchStartId);
-    if(benchCommand?.state==='OK'){
-      benchStartId=undefined;
-      benchWatch=true;
-      resultsAt=-Infinity;
-    }else if(benchCommand && ['ERR','PICO ERR','SIN CONFIRMACIÓN'].includes(benchCommand.state)){
-      benchStartId=undefined;
-    }
-    const report=data.commands?.find(cmd=>cmd.id===resultsId);
-    if(report?.state==='OK'){
-      resultsId=undefined;
-      if(!bench?.armed)benchWatch=false;
-    }
-    const startBlock=benchStartBlock(wheel,wheelFresh,adcsFresh,bench);
-    document.querySelectorAll('[data-value="BENCH_ARM"]').forEach(btn=>btn.disabled=Boolean(startBlock));
-    document.querySelectorAll('[data-bench-start-status]').forEach(el=>{
-      el.textContent=startBlock||(bench?.armed?'Armado bidireccional confirmado.':'Listo para iniciar el armado bidireccional.');
-    });
-    renderBrakeBatch(bench,maneuverReady,startBlock);
-    void pollBrakeBatch();
-    document.querySelector('[data-value="DETUMBLE"]').disabled=!maneuverReady||Math.abs(wheel.body_rpm)>=475/6;
-    document.querySelector('[data-prefix="TURN"]').disabled=!maneuverReady||Math.abs(wheel.body_rpm)>0.34;
-    document.querySelector('[data-prefix="LIGHT"]').disabled=!maneuverReady||wheel.axis!==2||Math.abs(wheel.body_rpm)>0.34;
-    document.getElementById('maneuver-turn').textContent=adcsFresh&&wheel.maneuver===2?
-      fmt(wheel.rotation_deg,'°',1)+' / '+fmt(wheel.target_deg,'°',1):'—';
-    renderAzimuth(adcsFresh?wheel:null);
+    renderTimedSpin(wheel,adcsFresh,data.commands);
     document.getElementById('adcs-export').disabled=!data.adcs_history?.length;
     const wheelCmd=(data.commands||[]).filter(cmd=>cmd.name==='WHEEL'&&!cmd.detail.startsWith('BRAKE,')).at(-1);
     if(wheelCmd)document.getElementById('wheel-command-response').textContent=
@@ -469,13 +311,11 @@
     try{const resp=await (window.stationRequest || fetch)('/api/pico',{cache:'no-store'});if(!resp.ok)throw Error('HTTP '+resp.status);renderPico(await resp.json());}
     catch(e){
       picoState={...picoState,connected:false};
-      updateWheelSetpoint();
       renderSolar(picoState);
       document.getElementById('pico-status-1').textContent='Sin conexión con backend';
       document.getElementById('relay-status').textContent='Salida del relé: Sin confirmación';
       document.getElementById('wheel-state').textContent='Sin conexión con el servidor';
-      document.getElementById('adcs-result').textContent='Sin conexión con el servidor';
-      document.querySelectorAll('[data-bench-start-status]').forEach(el=>el.textContent='Sin conexión con el panel. Comprueba el enlace al Pico.');
+      document.getElementById('spin-status').textContent='Sin conexión con el panel.';
       renderMissionScene(null,false);
       document.querySelectorAll('[data-cmd="WHEEL"]').forEach(btn=>btn.disabled=true);
     }
@@ -487,39 +327,37 @@
       btn.dataset.arg?[document.getElementById(btn.dataset.arg).value]:[];
     const msg=document.getElementById(btn.dataset.cmd==='WHEEL'?'wheel-command-response':'command-response');
     if(btn.dataset.arg&&!document.getElementById(btn.dataset.arg).reportValidity())return;
-    if(btn.dataset.prefix){
-      const prefix=btn.dataset.prefix==='LIGHT'&&document.getElementById('light-invert').checked?
-        'LIGHTINV':btn.dataset.prefix;
-      args=[prefix+(prefix==='AXIS_'?'':':')+args[0]];
+    if(btn.dataset.prefix==='RUN'){
+      const pulse=document.getElementById('spin-pwm');
+      const duration=document.getElementById('spin-seconds');
+      if(!pulse.reportValidity()||!duration.reportValidity())return;
+      args=['RUN:'+pulse.valueAsNumber+':'+duration.valueAsNumber];
+      btn.disabled=true;
+    }else if(btn.dataset.prefix==='AXIS_'){
+      args=['AXIS_'+args[0]];
     }
     msg.textContent='Enviando solicitud...';
     if(lanFeedback)lanFeedback.textContent='';
     try{
       const r=await (window.stationRequest || fetch)('/api/pico/command',commandRequest({command:btn.dataset.cmd,args}));
       const x=await r.json();if(!r.ok)throw Error(x.error||'No se pudo encolar');
-      if(btn.dataset.value==='BENCH_ARM'||btn.dataset.prefix==='RUNS')benchStartId=x.id;
-      if(btn.dataset.prefix==='LIGHT')lightMeasurement=null;
+      if(btn.dataset.prefix==='RUN'){spinCommandId=x.id;spinStatusAt=-Infinity;}
       msg.textContent='#'+x.id+' en cola; esperando respuesta de la STM32 (NO aplicado todavía)';
     }catch(err){
       msg.textContent='Error: '+err.message;
       if(lanFeedback)lanFeedback.textContent=err.message;
     }
   }));
-  document.getElementById('light-invert').addEventListener('change',()=>{
-    const wheel=picoState.wheel;
-    renderMissionScene(wheel,Boolean(picoState.connected&&picoState.capable&&wheel&&wheel.age<=25));
-  });
   document.getElementById('adcs-export').addEventListener('click',()=>{
     const rows=picoState.adcs_history||[];
     if(!rows.length)return;
     const keys=['t','axis','inverted','body_rpm','elapsed_s','detumble','pulse','level','rpm','leds',
       'gyro_calibrated','mag_calibrated','mag_valid','fusion_9dof','light_1','light_2','light_3','light_4',
-      'maneuver','rotation_deg','target_deg','reference_deg','light_azimuth_deg','brake_initial_rpm','brake_to_5rpm_s'];
+      'maneuver','rotation_deg','target_deg','reference_deg','light_azimuth_deg','brake_initial_rpm','brake_to_5rpm_s','spin_seconds','spin_pwm','spin_result'];
     const csv=[keys.join(','),...rows.map(row=>keys.map(key=>row[key]??'').join(','))].join('\n');
     const uri=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
     const link=document.createElement('a');link.href=uri;link.download='adcs-telemetria.csv';link.click();
     setTimeout(()=>URL.revokeObjectURL(uri),1000);
   });
   pollPico();setInterval(pollPico,1500);
-  setInterval(updateWheelSetpoint,250);
 })();

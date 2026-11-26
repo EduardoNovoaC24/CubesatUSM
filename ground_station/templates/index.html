@@ -106,7 +106,7 @@
   <div class="web-card" style="margin-top:16px"><h3>Registro de comandos y respuestas</h3><pre class="console" id="pico-logs">Sin actividad del Pico.</pre></div>
 </section>
 <section class="tab-panel cube-panel" id="tab-rueda" aria-label="Azimut">
-  <div class="panel-head"><div><h2>Azimut</h2><p>Prueba ADCS del CubeSat 3U suspendido</p></div></div>
+  <div class="panel-head"><div><h2>Azimut</h2><p>Control de giro del CubeSat 3U suspendido</p></div></div>
   <div class="dashboard-grid">
     <div class="web-card">
       <h3>Montaje y telemetría</h3>
@@ -131,15 +131,15 @@
         </div>
         <figcaption>Las cuatro caras laterales se representan en el módulo central. La rueda está dentro del módulo inferior.</figcaption>
       </figure>
-      <h3>Luminosidad por cara</h3>
+      <h3>Fotodiodos del Nano</h3>
       <div class="metric-list mission-light-grid">
-        <div><small>Cara 1 · PA0</small><b data-light-value="1">—</b><meter aria-label="Señal relativa cara 1" data-light-meter="1" min="0" max="4095"></meter></div>
-        <div><small>Cara 2 · PA1</small><b data-light-value="2">—</b><meter aria-label="Señal relativa cara 2" data-light-meter="2" min="0" max="4095"></meter></div>
-        <div><small>Cara 3 · PC2</small><b data-light-value="3">—</b><meter aria-label="Señal relativa cara 3" data-light-meter="3" min="0" max="4095"></meter></div>
-        <div><small>Cara 4 · PC3</small><b data-light-value="4">—</b><meter aria-label="Señal relativa cara 4" data-light-meter="4" min="0" max="4095"></meter></div>
+        <div><small>Cara 1 · A0</small><b data-light-value="1">—</b><meter aria-label="Señal relativa cara 1" data-light-meter="1" min="0" max="1023"></meter></div>
+        <div><small>Cara 2 · A1</small><b data-light-value="2">—</b><meter aria-label="Señal relativa cara 2" data-light-meter="2" min="0" max="1023"></meter></div>
+        <div><small>Cara 3 · A2</small><b data-light-value="3">—</b><meter aria-label="Señal relativa cara 3" data-light-meter="3" min="0" max="1023"></meter></div>
+        <div><small>Cara 4 · A3</small><b data-light-value="4">—</b><meter aria-label="Señal relativa cara 4" data-light-meter="4" min="0" max="1023"></meter></div>
       </div>
 
-      <p class="hint">Escala ADC de 0 a 4095. El brillo indica la señal relativa de cada sensor.</p>
+      <p class="hint">Valores ADC del Nano recibidos por UART4.</p>
       <div class="metric-list">
         <div><small>RPM medidas</small><b id="wheel-rpm">—</b></div>
         <div><small>PWM de salida</small><b id="wheel-pulse">—</b></div>
@@ -158,26 +158,7 @@
       <button class="cmd-btn" id="adcs-export" type="button" disabled>Exportar registros CSV</button>
     </div>
     <div class="web-card">
-      <details class="adcs-test">
-      <summary>Controles de banco de la rueda</summary>
-      <p>Prueba manual del ESC y del PWM.</p>
-      <div class="command-grid">
-        <button class="cmd-btn" data-cmd="WHEEL" data-value="PROFILE_AIR" disabled>Perfil avión</button>
-        <button class="cmd-btn" data-cmd="WHEEL" data-value="PROFILE_BIDIR" disabled>Perfil bidireccional</button>
-        <button class="cmd-btn" data-cmd="WHEEL" data-value="ENABLE" data-confirm="true" disabled>Habilitar prueba</button>
-      </div>
-      <div class="command-grid">
-        <button class="cmd-btn" data-cmd="WHEEL" data-value="ARM" data-confirm="true" disabled>Armar</button>
-        <button class="cmd-btn danger" data-cmd="WHEEL" data-value="STOP" disabled>Detener</button>
-      </div>
-      <div class="control-row">
-        <label for="wheel-setpoint">Nivel firmado</label>
-        <input id="wheel-setpoint" type="number" min="-15" max="15" value="5" step="1" required>
-        <button class="cmd-btn" data-cmd="WHEEL" data-arg="wheel-setpoint" disabled>Aplicar nivel</button>
-      </div>
-      <p class="hint">Nivel de prueba −15 a +15. El cero se envía con Detener. Cada ensayo dura hasta 8 s. El nivel PWM no representa RPM.</p>
-      <p id="wheel-ready-countdown" hidden></p>
-      </details>
+      <h3>Giro temporizado</h3>
       <div class="control-row">
         <label for="wheel-axis">Eje y polaridad</label>
         <select id="wheel-axis">
@@ -186,89 +167,25 @@
           <option value="Y+">Y+</option><option value="Y-">Y−</option>
         </select>
         <button class="cmd-btn" data-cmd="WHEEL" data-arg="wheel-axis" data-prefix="AXIS_" disabled>Aplicar eje</button>
-        <button class="cmd-btn danger" data-cmd="WHEEL" data-value="STOP" disabled>Detener y desarmar</button>
       </div>
+      <div class="control-row">
+        <label for="spin-pwm">PWM del ESC (µs)</label>
+        <input id="spin-pwm" type="number" min="1505" max="1575" step="5" value="1505" required>
+        <label for="spin-seconds">Duración (s)</label>
+        <input id="spin-seconds" type="number" min="1" max="60" step="1" value="5" required>
+      </div>
+      <div class="command-grid">
+        <button class="cmd-btn" id="spin-start" data-cmd="WHEEL" data-prefix="RUN" disabled>Encender</button>
+        <button class="cmd-btn danger" id="spin-brake" data-cmd="WHEEL" data-value="BRAKE" disabled>Frenar</button>
+      </div>
+      <p class="hint" id="spin-status" role="status">Esperando telemetría de la rueda.</p>
+      <div class="metric-list">
+        <div><small id="spin-clock-label">Tiempo de giro</small><b id="spin-elapsed">—</b></div>
+        <div><small>Duración ordenada</small><b id="spin-duration">—</b></div>
+      </div>
+      <p class="hint">El tiempo empieza al alcanzar el PWM indicado. Al pulsar Frenar o cumplirse el plazo, el STM32 reduce el giro con el giroscopio. Durante el frenado puedes desarmar el ESC.</p>
       <p id="wheel-command-response" aria-live="polite">Sin órdenes de rueda</p>
-      <section class="adcs-test" aria-labelledby="adcs-test-1">
-        <h3 id="adcs-test-1">Prueba 1 · Detumbling</h3>
-        <div class="control-row">
-          <button class="cmd-btn" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Iniciar</button>
-          <button class="cmd-btn" data-cmd="WHEEL" data-value="DETUMBLE" disabled>Frenar giro del CubeSat</button>
-        </div>
-        <p class="hint" data-bench-start-status role="status">Esperando el estado de la rueda.</p>
-        <p class="hint">Arma con el CubeSat en reposo. Inicia el frenado cuando el montaje esté girando. Reglamento: 60 rpm iniciales y menos de 5 rpm por confirmar. Metas de tiempo: &lt;10 s, &lt;25 s y &lt;60 s.</p>
-        <div class="metric-list">
-          <div><small>Giro inicial del CubeSat</small><b id="brake-start-rpm">—</b></div>
-          <div><small>Tiempo hasta menos de 5 rpm</small><b id="brake-competition-time">—</b></div>
-          <div><small>Tiempo hasta reposo</small><b id="adcs-elapsed">—</b></div>
-        </div>
-        <details>
-          <summary>Ensayo de banco · 20 repeticiones</summary>
-          <div class="control-row">
-          <label for="brake-pwm">PWM inicial del ESC (µs)</label>
-          <input id="brake-pwm" type="number" min="1505" max="1575" step="5" value="1505" required>
-          <button class="cmd-btn" data-cmd="WHEEL" data-arg="brake-pwm" data-prefix="RUNS" data-confirm="true" disabled>Generar 20 pruebas</button>
-          <button class="cmd-btn" data-cmd="WHEEL" data-value="STOP" disabled>Cancelar y desarmar</button>
-        </div>
-        <p class="hint" id="brake-generate-status" role="status">Pulsa Iniciar antes de generar la tanda.</p>
-        <p class="hint">Cada repetición aplica el PWM elegido durante 2 s antes de frenar. El giroscopio confirma reposo dentro de ±0,5 °/s durante 2 s. El tiempo se cuenta desde el inicio del frenado hasta la entrada en ese rango.</p>
-        <div class="metric-list">
-          <div><small>Repeticiones válidas</small><b id="brake-count">0 / 20</b></div>
-          <div><small>Mejor tiempo</small><b id="brake-best">—</b></div>
-        </div>
-        <p id="adcs-result" aria-live="polite">Selecciona el eje y calibra el giroscopio antes de iniciar.</p>
-        <svg class="chart-area brake-chart" id="plot-brake" role="img" aria-label="Segundos hasta reposo por repetición"></svg>
-        </details>
-      </section>
-      <section class="adcs-test" aria-labelledby="adcs-test-2">
-        <h3 id="adcs-test-2">Prueba 2 · Azimut por luz</h3>
-        <div class="control-row">
-          <button class="cmd-btn" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Iniciar</button>
-          <label for="reference-deg">Azimut inicial del CubeSat (°)</label>
-          <input id="reference-deg" type="number" min="0" max="359" step="1" value="0" required>
-          <button class="cmd-btn" data-cmd="WHEEL" data-arg="reference-deg" data-prefix="LIGHT" disabled>Seguir luz en Z</button>
-          <button class="cmd-btn" id="measure-light" type="button" disabled>Medir sin mover la rueda</button>
-        </div>
-        <p class="hint" data-bench-start-status role="status">Esperando el estado de la rueda.</p>
-        <p class="hint">Asigna el azimut a la cara 1 al iniciar. Mirando desde +Z, las caras 1 a 4 corresponden a 0°, 90°, 180° y 270°.</p>
-        <label class="hint mission-light-option"><input type="checkbox" id="light-invert"> Más luz corresponde a menor voltaje</label>
-        <div class="model-scene azimuth-scene" id="azimuth-scene" aria-label="Vista 3D del giro del CubeSat">
-          <div class="azimuth-camera" id="azimuth-camera">
-            <div class="sat-root" id="azimuth-model"><div class="sat-cube">
-              <div class="sat-face sat-front"></div><div class="sat-face sat-back"></div><div class="sat-face sat-left"></div>
-              <div class="sat-face sat-right"></div><div class="sat-face sat-top"></div><div class="sat-face sat-bottom"></div>
-            </div></div>
-          </div>
-        </div>
-        <div class="control-row">
-          <label>Vista horizontal <input type="range" id="azimuth-orbit" min="-180" max="180" value="-22"></label>
-          <label>Vista vertical <input type="range" id="azimuth-elevation" min="-75" max="75" value="-15"></label>
-        </div>
-        <p class="hint">Arrastra el modelo o usa los dos controles para cambiar el punto de vista.</p>
-        <div class="metric-list">
-          <div><small>Azimut inicial</small><b id="maneuver-reference">—</b></div>
-          <div><small>Azimut de la luz</small><b id="maneuver-light">—</b></div>
-          <div><small>Giro medido del CubeSat</small><b id="azimuth-rotation">—</b></div>
-          <div><small>Error absoluto</small><b id="azimuth-error">—</b></div>
-        </div>
-        <div class="control-row"><label for="true-azimuth">Azimut de referencia del jurado (°)</label><input id="true-azimuth" type="number" min="0" max="359.9" step="0.1" placeholder="Opcional"></div>
-        <p data-test-result="3" aria-live="polite">Sin prueba</p>
-      </section>
-      <details class="adcs-test">
-        <summary>Ensayo de banco · Giro por ángulo</summary>
-        <div class="control-row">
-          <label for="turn-deg">Giro relativo (°)</label>
-          <input id="turn-deg" type="number" min="-180" max="180" step="1" value="45" required>
-          <button class="cmd-btn" data-cmd="WHEEL" data-arg="turn-deg" data-prefix="TURN" disabled>Ejecutar giro</button>
-        </div>
-        <div class="metric-list">
-          <div><small>Giro recorrido / objetivo</small><b id="maneuver-turn">—</b></div>
-        </div>
-        <p data-test-result="2" aria-live="polite">Sin prueba</p>
-      </details>
-      <h3>Calibración del GY‑91</h3>
       <p id="adcs-sensors">Esperando datos del GY‑91</p>
-      <p class="hint">Los controles manuales están en Calibración y control.</p>
     </div>
   </div>
 </section>

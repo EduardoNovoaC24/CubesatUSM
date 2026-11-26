@@ -72,8 +72,6 @@ void Error_Handler(void);
 #endif
 #define WHEEL_TACH_Pin GPIO_PIN_7
 #define WHEEL_TACH_GPIO_Port GPIOC
-#define PHOTO_GPIOA_Pins (GPIO_PIN_0 | GPIO_PIN_1)
-#define PHOTO_GPIOC_Pins (GPIO_PIN_2 | GPIO_PIN_3)
 #ifndef SOLAR_TELEMETRY
 #define SOLAR_TELEMETRY 0
 #endif

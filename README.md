@@ -1,31 +1,10 @@
-# CubeSat USM
+# Firmware Pico LoRa P2P
 
-Proyecto CubeSat del equipo USM. Incluye el OBC STM32 con FreeRTOS, la radio LoRa P2P, el módulo EPS con ESP32, la estación terrestre y los diseños KiCad.
+El Pico sirve como puente USB entre **CubeSat - Ground Station** y el STM32 por SX1262.
 
-## Ramas
+1. Abre `pico_firmware/Pico_LoRa_P2P/Pico_LoRa_P2P.ino` con Arduino IDE.
+2. Selecciona el core Arduino-Pico y la placa correspondiente. Instala RadioLib y mantén los archivos `p2p_protocol.*` junto al sketch.
+3. Compila, carga y conecta el USB de datos al PC. El puerto trabaja a 115200 baudios.
+4. Abre la [estación web](https://eduardonovoac24.github.io/CubesatUSM/), espera la confirmación del Pico y prueba `PING`.
 
-| Rama | Contenido y guía |
-|---|---|
-| [firmware-stm32](../../tree/firmware-stm32) | OBC, ADS-B, IMU, control de actitud y radio SX1262 |
-| [firmware-pico](../../tree/firmware-pico) | Puente Raspberry Pi Pico + SX1262 |
-| [firmware-esp32](../../tree/firmware-esp32) | Telemetría EPS con INA219 |
-| [estacion-lora](../../tree/estacion-lora) | CubeSat - Ground Station y estación local Python |
-| [hardware](../../tree/hardware) | PCB, esquema, montaje, BOM y revisiones |
-| [integracion-adsb](../../tree/integracion-adsb) | Orange Pi, USART1 y radar local |
-
-Las ramas parten de la misma versión integrada. El README de cada rama indica dónde están sus archivos y cómo utilizarlos.
-
-## Usar la estación LoRa
-
-1. Abre [CubeSat - Ground Station](https://eduardonovoac24.github.io/CubesatUSM/) en Chrome de escritorio.
-2. Conecta el Pico LoRa con un cable USB de datos y cierra cualquier monitor serie que use ese puerto.
-3. Pulsa **Conectar Pico**, selecciona su puerto y espera **radio lista**.
-4. Envía `PING` en **Telecomandos** y comprueba que llegue un `ACK` del STM32.
-
-La conexión P2P utiliza el permiso USB de Chrome. Las credenciales LoRaWAN se configuran únicamente en el firmware local. Consulta la [guía del STM32](guias/firmware-stm32.md).
-
-La [estación Python](guias/estacion-lora.md) incluye el panel de telemetría detallado y el radar ADS-B.
-
-## Reproducir el proyecto
-
-Compila desde los archivos fuente con STM32CubeIDE o Arduino IDE según la rama. Los binarios históricos citados en [las notas anteriores](HISTORIAL_FIRMWARE.md) corresponden a compilaciones locales. Las dependencias incluidas mantienen sus avisos de licencia. Consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+El [README de Pico](pico_firmware/README.md) detalla el cableado, los parámetros de radio compartidos y las tramas TEL/CMD/ACK/EVT. `pico_receiver/` contiene el receptor anterior en MicroPython.

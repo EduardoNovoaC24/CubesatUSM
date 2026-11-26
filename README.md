@@ -19,12 +19,12 @@ Las ramas parten de la misma versión integrada. El README de cada rama indica d
 
 1. Abre [CubeSat - Ground Station](https://eduardonovoac24.github.io/CubesatUSM/) en Chrome de escritorio.
 2. Conecta el Pico LoRa con un cable USB de datos y cierra cualquier monitor serie que use ese puerto.
-3. Pulsa **Conectar Pico**, selecciona su puerto y espera **radio lista**.
-4. Envía `PING` en **Telecomandos** y comprueba que llegue un `ACK` del STM32.
+3. Pulsa **Conectar Pico LoRa**, selecciona su puerto y espera a que estén disponibles los comandos.
+4. Envía `PING` en **Calibración y control** y comprueba que llegue un `ACK` del STM32.
 
 La conexión P2P utiliza el permiso USB de Chrome. Las credenciales LoRaWAN se configuran únicamente en el firmware local. Consulta la [guía del STM32](guias/firmware-stm32.md).
 
-La [estación Python](guias/estacion-lora.md) incluye el panel de telemetría detallado y el radar ADS-B.
+La [guía de la estación terrestre](guias/estacion-lora.md) documenta el mismo panel con conexión USB en la web o con el servidor Python local.
 
 ## Reproducir el proyecto
 

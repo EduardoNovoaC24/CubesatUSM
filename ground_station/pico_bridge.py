@@ -180,7 +180,7 @@ class PicoBridge:
                         history=list(self.history), commands=list(self.commands),
                         logs=list(self.logs))
 
-    def send_command(self, name: str, args: list):
+    def send_command(self, name: str, args: list, operator=None):
         payload = validate_command(name, args)
         with self.lock:
             if not (self.connected and self.capable):
@@ -192,11 +192,14 @@ class PicoBridge:
                 raise RuntimeError('Cola de comandos llena')
             self.queue.put_nowait(frame)
             command = {'id':cmd_id, 'name':name,'state':'EN COLA','detail':'Esperando entrega al Pico'}
+            if operator:
+                command['operator'] = operator
             self.commands.append(command)
             if name == 'RELAY':
                 self.relay_command = command
                 self.relay_requested_at = time.monotonic()
-            self.log(f'[PC] #{cmd_id} {name}: en cola, NO confirmado por STM32')
+            origin = f'[PC · {operator}]' if operator else '[PC]'
+            self.log(f'{origin} #{cmd_id} {name}: en cola, NO confirmado por STM32')
         return {'id':cmd_id,'state':'EN COLA','message':'Pendiente de ACK de STM32'}
 
     def _update_command(self, cmd_id, state, detail):

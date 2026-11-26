@@ -1,5 +1,8 @@
 :root{--bg:#120b0c;--navy:#1c1113;--line:#4e2127;--soft:#c9979e;--aqua:#f3677b;--lime:#38e6b0}
 [hidden]{display:none!important}
+.lan-toolbar{display:flex;flex-wrap:wrap;gap:.65rem 1rem;align-items:center;padding:.7rem 1rem;background:var(--navy);border-bottom:1px solid var(--line);font-size:.85rem}
+.lan-toolbar input,.lan-toolbar button{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:.35rem;padding:.35rem .5rem}
+.lan-toolbar input{width:9rem}
 body{min-width:320px;overflow-x:hidden}
 header{height:74px;gap:12px}header .subtitle{font-size:12px}
 .app-nav{display:flex;align-items:center;gap:5px;overflow-x:auto;border-bottom:1px solid var(--line);background:#160d0f;padding:9px 18px;scrollbar-width:thin}

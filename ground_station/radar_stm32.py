@@ -11,9 +11,12 @@ ni tar1090. Soporta tramas:
 from __future__ import annotations
 
 import argparse
+import hmac
+import ipaddress
 import json
 import math
 import random
+import secrets
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -71,12 +74,68 @@ def demo_worker(state: State) -> None:
         time.sleep(2)
 
 
-def make_handler(state: State, pico: PicoBridge):
+LAN_TOOLBAR = """
+<section class="lan-toolbar" aria-label="Estación compartida">
+  <b>Red local</b>
+  <label>Operador <input id="lan-operator" maxlength="32" autocomplete="off"></label>
+  <label>Clave de mandos <input id="lan-key" type="password" maxlength="64" autocomplete="off"></label>
+  <button type="button" id="lan-release">Soltar control</button>
+  <span id="lan-status" role="status">Telemetría compartida</span>
+  <span id="lan-feedback" role="status"></span>
+</section>
+"""
+
+
+class SharedControl:
+    def __init__(self, ip):
+        self.ip = ip
+        self.key = secrets.token_hex(6)
+        self.lock = threading.Lock()
+        self.owner = None
+        self.operator = None
+        self.expires = 0
+
+    def snapshot(self):
+        with self.lock:
+            remaining = max(0, self.expires - time.monotonic())
+            return {'operator': self.operator if remaining else None, 'seconds': math.ceil(remaining)}
+
+    def submit(self, pico, client, operator, name, args):
+        independent = (name in ('PING', 'GET_STATUS') or
+                       (name in ('WHEEL', 'RELAY') and args == ['STATUS']) or
+                       (name == 'WHEEL' and args == ['STOP']))
+        with self.lock:
+            if not independent and self.owner != client and time.monotonic() < self.expires:
+                raise PermissionError(f'{self.operator} tiene el turno de control')
+            result = pico.send_command(name, args, operator=operator)
+            if not independent:
+                self.owner, self.operator = client, operator
+                self.expires = time.monotonic() + (125 if name == 'MAG_START' else 60)
+            return result
+
+    def release(self, client):
+        with self.lock:
+            if self.owner == client:
+                self.owner = self.operator = None
+                self.expires = 0
+
+
+def make_handler(state: State, pico: PicoBridge, shared=None):
+    index = (INDEX.replace(b'<nav ', LAN_TOOLBAR.encode('utf-8') + b'<nav ', 1)
+             if shared else INDEX)
+
     class Handler(BaseHTTPRequestHandler):
+        def allowed_hosts(self):
+            names = (shared.ip,) if shared else ('127.0.0.1', 'localhost')
+            return {f'{name}:{self.server.server_port}' for name in names}
+
         def do_GET(self):
+            if shared and self.headers.get('Host') not in self.allowed_hosts():
+                self.send_error(403, 'Not allowed')
+                return
             route = urlparse(self.path).path
             if route == '/':
-                data = INDEX
+                data = index
                 mimetype = 'text/html; charset=utf-8'
             elif route in WEB_ASSETS:
                 mimetype, data = WEB_ASSETS[route]
@@ -84,7 +143,10 @@ def make_handler(state: State, pico: PicoBridge):
                 data = json.dumps(state.snapshot(), ensure_ascii=False).encode('utf-8')
                 mimetype = 'application/json; charset=utf-8'
             elif route == '/api/pico':
-                data = json.dumps(pico.snapshot(), ensure_ascii=False).encode('utf-8')
+                snapshot = pico.snapshot()
+                if shared:
+                    snapshot['shared_control'] = shared.snapshot()
+                data = json.dumps(snapshot, ensure_ascii=False).encode('utf-8')
                 mimetype = 'application/json; charset=utf-8'
             else:
                 self.send_error(404, 'Not found')
@@ -99,18 +161,21 @@ def make_handler(state: State, pico: PicoBridge):
 
         def do_POST(self):
             route = urlparse(self.path).path
-            # Never accept commands from arbitrary remote browser origins.
             origin = self.headers.get('Origin', '')
             host = self.headers.get('Host', '')
-            if route != '/api/pico/command' or host not in (
-                    f'127.0.0.1:{self.server.server_port}',
-                    f'localhost:{self.server.server_port}') or (
-                    origin and origin not in (
-                        f'http://127.0.0.1:{self.server.server_port}',
-                        f'http://localhost:{self.server.server_port}')):
+            routes = ('/api/pico/command', '/api/control/release') if shared else ('/api/pico/command',)
+            if (route not in routes or host not in self.allowed_hosts() or
+                    (origin and origin != f'http://{host}')):
                 self.send_error(403, 'Not allowed')
                 return
             try:
+                if shared:
+                    key = self.headers.get('X-Station-Key', '').encode('utf-8')
+                    if not hmac.compare_digest(key, shared.key.encode('ascii')):
+                        raise PermissionError('Introduce la clave de mandos del PC anfitrión')
+                    client = self.headers.get('X-Station-Client', '')
+                    if len(client) != 32 or any(c not in '0123456789abcdef' for c in client):
+                        raise PermissionError('Recarga la página de la estación')
                 length = int(self.headers.get('Content-Length','0'))
                 if not 0 < length < 1024:
                     raise ValueError('Invalid request size')
@@ -118,10 +183,24 @@ def make_handler(state: State, pico: PicoBridge):
                 if not isinstance(payload, dict):
                     raise ValueError('Invalid JSON')
                 name, args = payload.get('command'), payload.get('args', [])
-                if not isinstance(name, str) or not isinstance(args, list):
-                    raise ValueError('Invalid command')
-                result = pico.send_command(name, args)
-                status = 202
+                if route == '/api/control/release':
+                    shared.release(client)
+                    result, status = {'released': True}, 200
+                else:
+                    if not isinstance(name, str) or not isinstance(args, list):
+                        raise ValueError('Invalid command')
+                    if shared:
+                        operator = payload.get('operator')
+                        if not isinstance(operator, str) or not 1 <= len(operator.strip()) <= 32:
+                            raise ValueError('Introduce tu nombre de operador')
+                        if not operator.isprintable():
+                            raise ValueError('Nombre de operador inválido')
+                        result = shared.submit(pico, client, operator.strip(), name, args)
+                    else:
+                        result = pico.send_command(name, args)
+                    status = 202
+            except PermissionError as exc:
+                result, status = {'error': str(exc)}, 403
             except (ValueError, TypeError, RuntimeError, OverflowError) as exc:
                 result = {'error':str(exc)}
                 status = 400
@@ -144,11 +223,21 @@ def main() -> None:
     parser.add_argument('--port', help='Puerto COM ST-LINK, ej. COM15')
     parser.add_argument('--baud', type=int, default=115200)
     parser.add_argument('--http-port', type=int, default=8765)
+    parser.add_argument('--lan-ip', help='IPv4 privada de este PC para compartir el panel')
     parser.add_argument('--demo', action='store_true', help='Datos sintéticos para probar la interfaz')
     parser.add_argument('--list-ports', action='store_true', help='Listar puertos serie')
     parser.add_argument('--pico-port', help='Puerto USB CDC del Pico SX1262 (opcional), diferente de ST-LINK')
     parser.add_argument('--pico-baud', type=int, default=115200)
     args = parser.parse_args()
+    shared = None
+    if args.lan_ip:
+        try:
+            ip = ipaddress.IPv4Address(args.lan_ip)
+            if not ip.is_private or ip.is_loopback or ip.is_unspecified or ip.is_link_local:
+                raise ValueError
+        except ValueError:
+            parser.error('--lan-ip requiere la IPv4 privada de la red local')
+        shared = SharedControl(str(ip))
 
     if args.list_ports:
         try:
@@ -179,11 +268,16 @@ def main() -> None:
         threading.Thread(target=serial_worker, args=(state, args.port, args.baud, not args.pico_port),
                          daemon=True).start()
 
-    url = f'http://127.0.0.1:{args.http_port}'
-    print(f'[WEB] Radar STM32 disponible en {url}')
-    print('[WEB] Solo accesible desde este PC. Ctrl+C para cerrar.')
+    bind_ip = shared.ip if shared else '127.0.0.1'
+    url = f'http://{bind_ip}:{args.http_port}'
+    print(f'[WEB] CubeSat - Ground Station en {url}')
+    if shared:
+        print(f'[WEB] Clave de mandos para esta sesión: {shared.key}')
+        print('[WEB] Ambos operadores deben abrir la dirección indicada.')
+    else:
+        print('[WEB] Solo accesible desde este PC.')
     print('[PICO] '+(args.pico_port or 'sin conectar (visualización LoRa en espera)'))
-    with ThreadingHTTPServer(('127.0.0.1', args.http_port), make_handler(state, pico)) as server:
+    with ThreadingHTTPServer((bind_ip, args.http_port), make_handler(state, pico, shared)) as server:
         try:
             server.serve_forever(poll_interval=0.5)
         except KeyboardInterrupt:

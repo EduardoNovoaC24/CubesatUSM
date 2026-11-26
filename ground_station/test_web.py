@@ -8,7 +8,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 from pico_bridge import PicoBridge, parse_telemetry, validate_command
-from radar_stm32 import State, make_handler, parse_aircraft
+from radar_stm32 import SharedControl, State, make_handler, parse_aircraft
 
 
 class DecoderTests(unittest.TestCase):
@@ -173,5 +173,55 @@ class DecoderTests(unittest.TestCase):
         finally:
             server.shutdown()
             server.server_close()
+
+    def test_shared_radio_uses_one_queue_and_tracks_operators(self):
+        pico = PicoBridge(None)
+        pico.connected = True
+        pico._parse_line('PICO_READY,P2P_CMD_V1')
+        shared = SharedControl('127.0.0.1')
+        handler = make_handler(State(demo=False), pico, shared)
+        with ThreadingHTTPServer(('127.0.0.1', 0), handler) as server:
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            address = f'http://127.0.0.1:{server.server_port}'
+
+            def submit(client, operator, name, args, key=shared.key, path='/api/pico/command'):
+                payload = {'operator': operator, 'command': name, 'args': args}
+                request = Request(address + path, data=json.dumps(payload).encode(), headers={
+                    'Content-Type': 'application/json', 'X-Station-Key': key,
+                    'X-Station-Client': client * 32, 'Origin': address,
+                })
+                with urlopen(request, timeout=2) as response:
+                    return json.load(response)
+
+            try:
+                with urlopen(address, timeout=2) as response:
+                    page = response.read().decode()
+                self.assertIn('lan-key', page)
+                self.assertNotIn(shared.key, page)
+                with self.assertRaises(HTTPError) as denied:
+                    submit('a', 'Operadora', 'PING', [], key='incorrecta')
+                self.assertEqual(denied.exception.code, 403)
+                denied.exception.close()
+                submit('a', 'Operadora', 'SET_MODE', ['6DOF'])
+                with self.assertRaises(HTTPError) as busy:
+                    submit('b', 'Operador', 'SET_MODE', ['6DOF'])
+                self.assertEqual(busy.exception.code, 403)
+                busy.exception.close()
+                ping = submit('b', 'Operador', 'PING', [])
+                self.assertEqual(pico.queue.get_nowait(), 'CMD,1,SET_MODE,6DOF\n')
+                self.assertEqual(pico.queue.get_nowait(), 'CMD,2,PING\n')
+                pico._parse_line(f"ACK,{ping['id']},OK,PONG")
+                for _ in range(2):
+                    with urlopen(address + '/api/pico', timeout=2) as response:
+                        snapshot = json.load(response)
+                    self.assertEqual(snapshot['commands'][-1]['operator'], 'Operador')
+                    self.assertEqual(snapshot['commands'][-1]['state'], 'OK')
+                submit('a', 'Operadora', '', [], path='/api/control/release')
+                self.assertEqual(submit('b', 'Operador', 'SET_MODE', ['6DOF'])['id'], 3)
+            finally:
+                server.shutdown()
+                thread.join(2)
+
 
 if __name__=='__main__': unittest.main()

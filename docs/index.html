@@ -232,6 +232,11 @@
       <button class="cmd-btn" id="adcs-export" type="button" disabled>Exportar registros CSV</button>
     </div>
     <div class="web-card">
+      <h3>Giro manual</h3>
+      <div class="command-grid">
+        <button class="cmd-btn danger" id="spin-brake-manual" data-cmd="WHEEL" data-value="BRAKE" disabled>Frenar giro manual</button>
+      </div>
+      <p class="hint">Cuando los jueces suelten el CubeSat, pulsa Frenar giro manual. El resultado aparece en el estado y en los gr&aacute;ficos de frenado.</p>
       <h3>Giro temporizado</h3>
       <p class="hint">Eje y polaridad fijos en <strong>Z+</strong>.</p>
       <div class="control-row">
@@ -385,7 +390,7 @@ function render(data){
 async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());}catch(e){document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}finally{setTimeout(poll,1000);}}
 poll();
 </script>
-<script defer src="./assets/cubesat_web.js?v=4d7f48875e"></script>
+<script defer src="./assets/cubesat_web.js?v=73804b118c"></script>
 <script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

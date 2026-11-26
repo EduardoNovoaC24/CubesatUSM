@@ -1315,6 +1315,7 @@ static void telemetry_publish(FusionQuaternion q, bool valid, const MPU9250_Data
 #define WHEEL_TIMED_SETTLE_DPS 0.25f
 #define WHEEL_TIMED_SETTLE_ACCEL_DPS2 0.5f
 #define WHEEL_TIMED_SETTLE_MS 10000U
+#define WHEEL_BRAKE_OBSERVE_MS 1000U
 #define WHEEL_LIGHT_LOSS_MS 750U
 #define WHEEL_LIGHT_HOLD_TOLERANCE_DEG 2.0f
 /* Negative MAN values cannot collide with the unsigned light azimuth. */
@@ -1587,9 +1588,9 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     static bool below;
     static WheelBrakeBatch batch;
     static uint32_t timed_duration_ms, timed_started_at;
-    static bool timed_at_target, timed_braking, manual_brake_arming;
+    static bool timed_at_target, timed_braking, manual_brake_arming, brake_observing;
     static int timed_level;
-    static float timed_filtered_rate, timed_filtered_accel, timed_brake_level;
+    static float timed_filtered_rate, timed_filtered_accel, timed_brake_level, observed_rotation;
     static int timed_direction;
     static uint32_t timed_direction_at, timed_neutral_at;
     bool request_timed_brake = false;
@@ -1669,7 +1670,16 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         if (timed_braking || tracking) {
             brake_dt = (float)(now - rate_sample_at) * 0.001f;
             rate_sample_at = now;
-            if (brake_dt > 0.0f) {
+            if (timed_braking && brake_observing) {
+                /* Signed mean over one second, weighted by the sampling interval. */
+                observed_rotation += 0.5f * (rate + previous_rate) * brake_dt;
+                const uint32_t observed_ms = now - detumble_at;
+                if (observed_ms >= WHEEL_BRAKE_OBSERVE_MS) {
+                    timed_filtered_rate = observed_rotation * 1000.0f / (float)observed_ms;
+                    timed_filtered_accel = 0.0f;
+                    brake_observing = false;
+                }
+            } else if (brake_dt > 0.0f) {
                 const float last_rate = timed_filtered_rate;
                 timed_filtered_rate += (brake_dt / (0.18f + brake_dt)) * (rate - timed_filtered_rate);
                 const float acceleration = (timed_filtered_rate - last_rate) / brake_dt;
@@ -1763,7 +1773,9 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             const float tolerance = holding_angle ? WHEEL_LIGHT_HOLD_TOLERANCE_DEG : tracking ? 3.0f : 1.0f;
             const bool fine_control = timed_braking || holding_angle;
             const float settle_rate = fine_control ? WHEEL_TIMED_SETTLE_DPS : 0.5f;
-            const bool settled = fabsf(rate) <= settle_rate && (braking || fabsf(error) <= tolerance) &&
+            const bool observing = timed_braking && brake_observing;
+            const bool settled = !observing && fabsf(rate) <= settle_rate &&
+                                 (braking || fabsf(error) <= tolerance) &&
                                  (!fine_control || (fabsf(timed_filtered_rate) <= settle_rate &&
                                   fabsf(timed_filtered_accel) <= WHEEL_TIMED_SETTLE_ACCEL_DPS2));
             if (holding_angle && light_stable && !settled) {
@@ -1801,7 +1813,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             } else {
                 below = false;
             }
-            if (fine_control) {
+            if (fine_control && !observing) {
                 /* Position loop sets a body rate; the incremental rate loop drives the ESC. */
                 const float desired_rate = holding_angle && fabsf(error) > tolerance ?
                                            fmaxf(-4.0f, fminf(4.0f, 0.65f * error)) : 0.0f;
@@ -1825,7 +1837,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                                              fminf(P2P_WHEEL_MAX_LEVEL, timed_brake_level));
                     wheel->level = (int8_t)lroundf(timed_brake_level);
                 }
-            } else if (!settled && now - ramp_at >= 200U) {
+            } else if (!fine_control && !settled && now - ramp_at >= 200U) {
                 ramp_at = now;
                 /* Constant body rate in cruise, reducing it as the target approaches. */
                 const float remaining = fabsf(error);
@@ -2187,6 +2199,9 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         manual_brake_arming = false;
         timed_duration_ms = 0U;
         timed_braking = true;
+        brake_observing = true;
+        observed_rotation = 0.0f;
+        previous_rate = rate;
         timed_filtered_rate = rate;
         timed_filtered_accel = 0.0f;
         timed_brake_level = ((float)wheel->pulse - wheel_neutral(wheel->profile)) / 5.0f;

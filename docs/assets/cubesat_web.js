@@ -126,6 +126,7 @@
     document.getElementById('spin-status').textContent=waiting?'Esperando el ACK del STM32.':
       motion&&wheel.state===1?(wheel.spin_seconds==null?'Armando el ESC para frenar el giro manual.':'Armando el ESC.'):
       braking&&wheel.spin_result===1?'Manteniendo el reposo. El control sigue activo.':
+      braking&&Number.isFinite(wheel.elapsed_s)&&wheel.elapsed_s<1?'Midiendo el sentido y la velocidad angular.':
       braking?'Frenando en Z+. El reposo se confirma tras 10 s cerca de cero.':
       motion?'Giro temporizado en curso.':
       timed&&wheel.spin_result?resultLabels[wheel.spin_result]||block:
@@ -230,8 +231,7 @@
       el.classList.toggle('brightest',leaders.includes(face));
     });
     const connected=picoState.connected&&picoState.capable;
-    document.getElementById('light-follow').disabled=!connected||turnRequestInFlight||turnCommandId!==undefined||!directional||wheel.state!==2||wheel.profile!==2||
-      !wheel.gyro_calibrated||!Number.isFinite(wheel.body_rpm)||Math.abs(wheel.body_rpm)>.33;
+    document.getElementById('light-follow').disabled=!connected;
     const results={3:'Tiempo de prueba agotado.',4:'Lectura de giro inválida.',5:'Seguimiento detenido.',
       6:'Límite de la rueda alcanzado.',7:'Giro fuera del rango de control.',8:'Se perdió el enlace.',
       9:'La luz dejó de tener una dirección clara.'};

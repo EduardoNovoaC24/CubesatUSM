@@ -236,7 +236,7 @@
         <div><small id="spin-clock-label">Tiempo de giro</small><b id="spin-elapsed">—</b></div>
         <div><small>Duración ordenada</small><b id="spin-duration">—</b></div>
       </div>
-      <p class="hint">Puedes girar el CubeSat a mano y pulsar Frenar, o usar Encender y despu&eacute;s Frenar. El reposo se confirma tras 10 s con velocidad y aceleraci&oacute;n angular cerca de cero. Desarmar ESC termina la correcci&oacute;n.</p>
+      <p class="hint">Puedes girar el CubeSat a mano y pulsar Frenar, o usar Encender y despu&eacute;s Frenar. La STM32 mide el giro durante el primer segundo y luego corrige. El reposo se confirma tras 10 s con velocidad y aceleraci&oacute;n angular cerca de cero. Desarmar ESC termina la correcci&oacute;n.</p>
       <h3>Prueba angular y seguimiento de luz</h3>
       <div class="command-grid">
         <button class="cmd-btn" id="turn-start" data-cmd="WHEEL" data-value="TURN:180" disabled>Girar 180°</button>

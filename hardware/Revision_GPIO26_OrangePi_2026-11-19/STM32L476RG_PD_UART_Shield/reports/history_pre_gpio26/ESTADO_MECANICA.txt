@@ -1,0 +1,2 @@
+DRC: 9 advertencias de diferencias con biblioteca; 0 conexiones pendientes y 0 problemas de paridad. No son errores de separación.
+Comprobacion geometrica conservadora de pistas y pads respecto a agujeros: ver HOLE_GEOMETRY_CHECK.json. No comprueba arandelas, soportes, componentes 3D ni compatibilidad fisica con estructura.

@@ -1,0 +1,9 @@
+# User build extension: CubeIDE will discover new Core/Src files when it
+# regenerates makefiles. Supply missing objects for existing generated builds.
+P2P_EXTRA_OBJECTS := ./Core/Src/p2p_protocol.o ./Core/Src/p2p_control.o ./Core/Src/p2p_flash.o
+USER_OBJS += $(filter-out $(OBJS),$(P2P_EXTRA_OBJECTS))
+-include Core/Src/p2p_protocol.d Core/Src/p2p_control.d Core/Src/p2p_flash.d
+
+ADSB_EXTRA_OBJECTS := ./Core/Src/adsb_protocol.o ./Core/Src/adsb_receiver.o
+USER_OBJS += $(filter-out $(OBJS),$(ADSB_EXTRA_OBJECTS))
+-include Core/Src/adsb_protocol.d Core/Src/adsb_receiver.d

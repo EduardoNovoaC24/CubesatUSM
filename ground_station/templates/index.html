@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CubeSat - Ground Station</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" onerror="this.onerror=null;this.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css'">
+<style>
+/* Respaldo mínimo de estructura Leaflet si el CDN no entrega leaflet.css.
+   Evita que las losetas aparezcan como imágenes sueltas. */
+.leaflet-container{position:relative;overflow:hidden;outline:0;touch-action:pan-x pan-y}
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,
+.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,
+.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
+.leaflet-tile{visibility:hidden;max-width:none!important;max-height:none!important;user-select:none;pointer-events:none}
+.leaflet-tile-loaded{visibility:inherit}
+.leaflet-tile-container{pointer-events:none}
+.leaflet-zoom-animated{transform-origin:0 0}
+.leaflet-zoom-hide{visibility:hidden}
+.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}
+.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}
+.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}
+.leaflet-popup-pane{z-index:700}
+.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.leaflet-top{top:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}.leaflet-right{right:0}
+.leaflet-control{position:relative;z-index:800;pointer-events:auto;float:left;clear:both}
+.leaflet-right .leaflet-control{float:right;margin-right:10px}
+.leaflet-bottom .leaflet-control{margin-bottom:10px}
+.leaflet-top .leaflet-control{margin-top:10px}
+.leaflet-left .leaflet-control{margin-left:10px}
+.leaflet-control-zoom{border:2px solid #0003;border-radius:5px;overflow:hidden}
+.leaflet-control-zoom a{display:block;text-align:center;width:30px;height:30px;line-height:30px;background:#fff;color:#111;text-decoration:none;font:bold 19px Arial;border-bottom:1px solid #ccc}
+.leaflet-control-zoom a:last-child{border-bottom:none}
+.leaflet-control-attribution{background:#fff9;padding:0 5px;font:11px Arial}
+.leaflet-marker-icon,.leaflet-marker-shadow{display:block}
+.leaflet-container img{max-width:none!important;max-height:none!important}
+.leaflet-container .leaflet-marker-pane img{max-width:none!important}
+.leaflet-container a{cursor:pointer}
+.leaflet-interactive{cursor:pointer}
+
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#120b0c;color:#fae9ec}
+*{box-sizing:border-box}body{margin:0}header{height:71px;display:flex;align-items:center;justify-content:space-between;padding:0 25px;background:#170e0f;border-bottom:1px solid #421b20}header h1{font-size:18px;letter-spacing:.3px;margin:0}header .subtitle{font-size:11px;color:#c88b93;display:block;margin-top:4px}.brand{display:flex;align-items:center;gap:13px}.logo{width:38px;height:38px;display:grid;place-items:center;background:#451219;border-radius:11px;color:#f36a7e;font-size:23px}.status{font-size:12px;color:#e6c1c6;display:flex;gap:7px;align-items:center;text-align:right}.dot{height:8px;width:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e80;flex-shrink:0}.dot.error{background:#f59e0b;box-shadow:0 0 10px #f59e0b80}.dot.demo{background:#fb923c}main{display:grid;grid-template-columns:minmax(0,1fr) 344px;gap:0;height:calc(100vh - 71px)}.mapwrap{position:relative;min-height:340px}#map{height:100%;width:100%;background:#1e1214}.leaflet-container{font-family:inherit}.leaflet-control-attribution{background:#1b1012d9!important;color:#cf969e!important}.leaflet-control-attribution a{color:#f68e9d!important}.topbar{position:absolute;top:18px;left:18px;right:18px;pointer-events:none;z-index:450;display:flex;flex-wrap:wrap;gap:8px}.stat{border:1px solid #4f232a;background:#1a1011eb;border-radius:11px;padding:10px 15px;backdrop-filter:blur(8px);min-width:110px}.stat label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#c9929a}.stat strong{font-size:25px;font-weight:700}.demo-banner{position:absolute;bottom:37px;left:50%;transform:translateX(-50%);z-index:450;background:#9a3412f0;border-radius:7px;padding:10px 14px;font-size:12px;font-weight:700;white-space:nowrap}.sidebar{background:#170e0f;border-left:1px solid #441c21;min-width:0;overflow-y:auto;display:flex;flex-direction:column}.sidehead{padding:20px 20px 15px;border-bottom:1px solid #431c21}.sidehead h2{font-size:15px;margin:0 0 5px}.sidehead p{font-size:12px;color:#c6929a;margin:0}.planes{padding:10px;flex:1}.plane-row{border:1px solid #482026;background:#201315;border-radius:11px;padding:14px;margin:9px 0;cursor:pointer;transition:background .2s,border-color .2s}.plane-row:hover{background:#45151c;border-color:#bb3d4f}.flight{font-size:17px;font-weight:700;letter-spacing:.3px}.icao{color:#cd9aa2;font-size:11px}.plane-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.plane-data{display:grid;grid-template-columns:1fr 1fr;gap:9px}.plane-data small{color:#cd9aa2;font-size:10px}.plane-data b{font-size:12px;display:block;margin-top:3px;font-weight:600}.tag{font-size:10px;border-radius:5px;padding:4px 6px;background:#441219;color:#e87787}.muted{color:#c8929a}.empty{padding:42px 15px;text-align:center;font-size:13px;line-height:1.6;color:#d1a0a7}.foot{border-top:1px solid #431c21;padding:15px 19px;font-size:11px;line-height:1.5;color:#c6929a}.plane-pin{width:31px;height:31px;display:grid;place-items:center;border-radius:50%;background:#340f14d9;border:1px solid #ee5f73aa;box-shadow:0 0 13px #f0425b65}.plane-pin svg{fill:#f47789;filter:drop-shadow(0 0 2px #ca1d36)}.leaflet-popup-content-wrapper{border-radius:10px;background:#201315;color:#fdecef}.leaflet-popup-tip{background:#201315}.leaflet-popup-content{margin:12px 14px;line-height:1.7}.leaflet-popup-content b{color:#f691a0}@media(max-width:900px){main{grid-template-columns:1fr;grid-template-rows:minmax(380px,60vh) auto;height:auto}.sidebar{min-height:260px}.status{max-width:45%;font-size:10px}header{padding:0 15px}}
+</style>
+<link rel="stylesheet" href="/assets/cubesat_web.css">
+</head>
+<body>
+<div id="intro" class="splash" role="dialog" aria-label="Presentación de la estación CubeSat">
+  <div class="splash-content">
+    <img class="splash-logo" src="/assets/usm-cubesat-logo.svg" alt="USM CubeSat Team" width="224" height="224">
+    <h2>CubeSat Flight Control</h2>
+    <p>ADS-B · Orange Pi Zero LTS · STM32L476RG · SX1262</p>
+    <div class="splash-progress"><span></span></div>
+    <button id="enter" class="enter-btn">Ingresar a la estación</button>
+  </div>
+</div>
+
+<header><div class="brand"><img class="logo" src="/assets/usm-cubesat-logo.svg" alt="" width="48" height="48"><div><h1>CubeSat - Ground Station</h1><span class="subtitle">ADS-B · Orange Pi → STM32L476RG → PC</span></div></div><div class="status"><span id="statusdot" class="dot error"></span><span id="status">Iniciando recepción...</span></div></header>
+<nav class="app-nav" aria-label="Secciones de la estación">
+  <button class="tab-btn" data-target="tab-radar" aria-selected="true">✈ Radar ADS-B</button>
+  <button class="tab-btn" data-target="tab-telemetria" aria-selected="false">◈ Telemetría GY-91</button>
+  <button class="tab-btn" data-target="tab-control" aria-selected="false">⚙ Calibración y control</button>
+  <button class="tab-btn" data-target="tab-graficos" aria-selected="false">▥ Gráficos</button>
+  <button class="tab-btn" data-target="tab-rueda" aria-selected="false">Misión de hoy</button>
+  <button class="tab-btn" data-target="tab-solar" aria-selected="false">Paneles solares</button>
+</nav>
+<section class="tab-panel active" id="tab-radar" aria-label="Radar ADS-B">
+<main>
+<div class="mapwrap"><div id="map"></div><div class="topbar"><div class="stat"><label>En mapa</label><strong id="mapcount">0</strong></div><div class="stat"><label>Recibidas</label><strong id="total">0</strong></div><div class="stat"><label>Tramas inválidas</label><strong id="invalid">0</strong></div></div><div id="demo-banner" class="demo-banner" style="display:none">MODO SIMULACIÓN — no son aeronaves reales</div></div>
+<aside class="sidebar"><div class="sidehead"><h2>🛫 Aeronaves recibidas por STM32</h2><p>Las posiciones se actualizan desde el puerto COM de ST-LINK</p></div><div id="planes" class="planes"><div class="empty">Esperando mensajes ADS-B...</div></div><div class="foot">Para dibujar un avión, la STM32 debe enviar también latitud y longitud por USART2. Si envía solo ICAO y altitud, la aeronave aparecerá en la lista sin marcador en el mapa.<p id="error"></p>Mapa © OpenStreetMap contributors · Leaflet</div></aside>
+</main>
+</section>
+<section class="tab-panel cube-panel" id="tab-telemetria" aria-label="Telemetría GY-91">
+  <div class="panel-head"><div><h2>Telemetría GY-91 · CubeSat</h2><p>Orientación 3D, acelerómetro, giroscopio y magnetómetro recibidos a través del Pico LoRa P2P.</p></div><div class="panel-status" id="pico-status-1">Pico sin configurar</div></div>
+  <div class="full-grid"><div class="web-card metric-card"><span>Paquetes RF</span><strong data-pico="packets">0</strong></div><div class="web-card metric-card"><span>Tramas IMU</span><strong data-pico="samples">0</strong></div><div class="web-card metric-card"><span>RSSI</span><strong data-pico="rssi">—</strong></div><div class="web-card metric-card"><span>SNR</span><strong data-pico="snr">—</strong></div></div>
+  <div class="dashboard-grid">
+    <div class="web-card"><h3>CubeSat 3U · 10 × 10 × 30 cm</h3><div class="model-scene"><div class="sat-root" id="sat-model-1"><div class="sat-cube"><div class="sat-face sat-front"></div><div class="sat-face sat-back"></div><div class="sat-face sat-left"></div><div class="sat-face sat-right"></div><div class="sat-face sat-top"></div><div class="sat-face sat-bottom"></div></div></div></div><p>Cuaterniones: <b id="quat-text">—</b> · Norma: <b data-imu="norm">—</b></p><p class="warning">El modelo solo se mueve con cuaterniones reales; sin datos permanece en pose neutral.</p></div>
+    <div class="web-card"><h3>Brújula y datos de sensores</h3><div class="compass"><span class="cardinal north">N</span><span class="cardinal east">E</span><span class="cardinal south">S</span><span class="cardinal west">O</span><div class="compass-arrow" id="compass-1"></div></div><p style="text-align:center">Heading magnético horizontal aproximado: <b data-imu="heading">—</b></p><div class="metric-list" id="imu-metrics-1"></div><p>Magnetómetro · <b data-mag-status>Estado sin datos</b></p><p class="hint" data-sensor-age>Esperando telemetría de sensores</p><p>BMP280 &middot; Presi&oacute;n: <b id="baro-pressure">&mdash;</b> &middot; Temperatura: <b id="baro-temperature">&mdash;</b></p><p class="hint">Acelerómetro: mg · Giro: centi°/s · Magnetómetro: décimas de µT. Brújula sin compensación de inclinación.</p></div>
+  </div>
+  <div class="web-card" style="margin-top:16px"><h3>Último payload SX1262</h3><pre class="console" id="pico-payload">Aún no hay paquetes recibidos.</pre></div>
+</section>
+<section class="tab-panel cube-panel" id="tab-control" aria-label="Calibración y control">
+  <div class="panel-head"><div><h2>Calibración y control remoto</h2><p>Comandos USB → Pico → LoRa P2P → STM32. La transmisión no implica que se haya aplicado la orden.</p></div><div class="panel-status" id="pico-status-2">Pico sin configurar</div></div>
+  <div class="dashboard-grid">
+    <div class="web-card"><h3>Vista de orientación · Sensores</h3><div class="model-scene"><div class="sat-root" id="sat-model-2"><div class="sat-cube"><div class="sat-face sat-front"></div><div class="sat-face sat-back"></div><div class="sat-face sat-left"></div><div class="sat-face sat-right"></div><div class="sat-face sat-top"></div><div class="sat-face sat-bottom"></div></div></div></div><div class="metric-list" id="imu-metrics-2" style="margin-top:15px"></div><p>Magnetómetro · <b data-mag-status>Estado sin datos</b></p><p class="hint" data-sensor-age>Esperando telemetría de sensores</p><p>Brújula: <b data-imu="heading">—</b> · Norma: <b data-imu="norm">—</b></p></div>
+    <div class="web-card"><h3>Control de la STM32</h3><p class="warning" id="command-hint">No disponible: conecta el Pico y espera PICO_READY,P2P_CMD_V1.</p>
+      <div class="command-grid"><button class="cmd-btn" data-cmd="PING" disabled>PING</button><button class="cmd-btn" data-cmd="GET_STATUS" disabled>GET_STATUS</button></div>
+      <h4>Relé · PB10 (D6)</h4>
+      <div class="command-grid">
+        <button class="cmd-btn" data-cmd="RELAY" data-value="ON" disabled>Encender</button>
+        <button class="cmd-btn" data-cmd="RELAY" data-value="OFF" disabled>Apagar</button>
+        <button class="cmd-btn" data-cmd="RELAY" data-value="STATUS" disabled>Consultar estado</button>
+      </div>
+      <p class="hint" id="relay-status" aria-live="polite">Salida del relé: Sin confirmación</p>
+      <h3 style="margin-top:20px">Filtro Fusion AHRS</h3>
+      <div class="control-row"><label for="beta">Beta</label><input id="beta" type="number" min="0.001" max="2" step="0.005" value="0.1"><button class="cmd-btn" data-cmd="SET_BETA" data-arg="beta" disabled>Aplicar β</button></div>
+      <div class="control-row"><label for="mode">Fusión</label><select id="mode"><option>6DOF</option><option>9DOF</option></select><button class="cmd-btn" data-cmd="SET_MODE" data-arg="mode" disabled>Aplicar</button></div>
+      <div class="control-row"><label for="rate">Tasa</label><input id="rate" type="number" min="1" max="10" value="2"><button class="cmd-btn" data-cmd="SET_RATE" data-arg="rate" disabled>Aplicar Hz</button></div>
+      <h3 style="margin-top:20px">Calibraciones y memoria</h3>
+      <div class="command-grid"><button class="cmd-btn danger" data-cmd="CAL_GYRO" data-confirm="true" disabled>Calibrar giroscopio</button><button class="cmd-btn danger" data-cmd="CAL_ACCEL" data-confirm="true" disabled>Calibrar acelerómetro</button><button class="cmd-btn danger" data-cmd="MAG_START" data-confirm="true" disabled>Iniciar MAG</button><button class="cmd-btn danger" data-cmd="MAG_STOP" data-confirm="true" disabled>Finalizar MAG</button><button class="cmd-btn danger" data-cmd="RESET_FILTER" data-confirm="true" disabled>Reiniciar filtro</button><button class="cmd-btn danger" data-cmd="SAVE_CONFIG" data-confirm="true" disabled>Guardar FLASH</button><button class="cmd-btn danger" data-cmd="LOAD_CONFIG" data-confirm="true" disabled>Cargar FLASH</button></div>
+      <p class="hint">Para calibrar el giroscopio, deja el CubeSat quieto sobre una superficie firme durante 4 segundos.</p>
+      <p class="hint" id="command-response" aria-live="polite">Última orden: —</p>
+    </div>
+  </div>
+  <div class="web-card" style="margin-top:16px"><h3>Registro de comandos y respuestas</h3><pre class="console" id="pico-logs">Sin actividad del Pico.</pre></div>
+</section>
+<section class="tab-panel cube-panel" id="tab-rueda" aria-label="Misión de hoy">
+  <div class="panel-head"><div><h2>Misión de hoy</h2><p>Prueba ADCS del CubeSat 3U suspendido</p></div></div>
+  <div class="dashboard-grid">
+    <div class="web-card">
+      <h3>Montaje y telemetría</h3>
+      <figure class="mission-figure">
+        <div class="mission-scene" aria-hidden="true">
+          <div class="mission-tripod"><i></i><i></i><i></i><b></b></div>
+          <div class="mission-rig">
+            <div class="mission-tether"></div>
+            <div class="mission-bus">
+              <div class="mission-module mission-upper"></div>
+              <div class="mission-module mission-middle">
+                <span class="mission-photo" data-mission-light="1" data-state="unknown" title="Cara 1">1</span>
+                <span class="mission-photo" data-mission-light="2" data-state="unknown" title="Cara 2">2</span>
+                <span class="mission-photo" data-mission-light="3" data-state="unknown" title="Cara 3">3</span>
+                <span class="mission-photo" data-mission-light="4" data-state="unknown" title="Cara 4">4</span>
+              </div>
+              <div class="mission-module mission-lower"><div class="wheel-rotor" id="mission-rotor"></div></div>
+            </div>
+            <span class="mission-dim-height">30 cm</span>
+            <span class="mission-dim-width">10 cm</span>
+          </div>
+        </div>
+        <figcaption>Las cuatro caras laterales se representan en el módulo central. La rueda está dentro del módulo inferior.</figcaption>
+      </figure>
+      <h3>Luminosidad por cara</h3>
+      <div class="metric-list mission-light-grid">
+        <div><small>Cara 1 · PA0</small><b data-light-value="1">—</b><meter aria-label="Señal relativa cara 1" data-light-meter="1" min="0" max="4095"></meter></div>
+        <div><small>Cara 2 · PA1</small><b data-light-value="2">—</b><meter aria-label="Señal relativa cara 2" data-light-meter="2" min="0" max="4095"></meter></div>
+        <div><small>Cara 3 · PC2</small><b data-light-value="3">—</b><meter aria-label="Señal relativa cara 3" data-light-meter="3" min="0" max="4095"></meter></div>
+        <div><small>Cara 4 · PC3</small><b data-light-value="4">—</b><meter aria-label="Señal relativa cara 4" data-light-meter="4" min="0" max="4095"></meter></div>
+      </div>
+
+      <p class="hint">Escala ADC de 0 a 4095. El brillo indica la señal relativa de cada sensor.</p>
+      <div class="metric-list">
+        <div><small>RPM medidas</small><b id="wheel-rpm">—</b></div>
+        <div><small>PWM de salida</small><b id="wheel-pulse">—</b></div>
+        <div><small>Nivel ordenado</small><b id="wheel-level">—</b></div>
+      </div>
+      <p id="wheel-state" aria-live="polite">Esperando telemetría de la rueda</p>
+      <div class="metric-list">
+        <div><small>Eje configurado</small><b id="adcs-axis">—</b></div>
+        <div><small>Giro del CubeSat · rpm</small><b id="adcs-rate">—</b></div>
+      </div>
+      <div class="metric-list">
+        <div><small>RSSI</small><b data-pico="rssi">—</b></div>
+        <div><small>SNR</small><b data-pico="snr">—</b></div>
+        <div><small>Paquetes</small><b data-pico="packets">—</b></div>
+      </div>
+      <button class="cmd-btn" id="adcs-export" type="button" disabled>Exportar registros CSV</button>
+    </div>
+    <div class="web-card">
+      <h3>Preparación de la rueda</h3>
+      <p>Selecciona el perfil del ESC, habilita la prueba y luego arma dentro de 30 s. Selecciona el eje físico y la polaridad de la rueda mientras está desarmada.</p>
+      <div class="command-grid">
+        <button class="cmd-btn" data-cmd="WHEEL" data-value="PROFILE_AIR" disabled>Perfil avión</button>
+        <button class="cmd-btn" data-cmd="WHEEL" data-value="PROFILE_BIDIR" disabled>Perfil bidireccional</button>
+        <button class="cmd-btn" data-cmd="WHEEL" data-value="ENABLE" data-confirm="true" disabled>Habilitar prueba</button>
+      </div>
+      <div class="command-grid">
+        <button class="cmd-btn" data-cmd="WHEEL" data-value="ARM" data-confirm="true" disabled>Armar</button>
+        <button class="cmd-btn danger" data-cmd="WHEEL" data-value="STOP" disabled>Detener</button>
+      </div>
+      <div class="control-row">
+        <label for="wheel-setpoint">Nivel firmado</label>
+        <input id="wheel-setpoint" type="number" min="-15" max="15" value="5" step="1" required>
+        <button class="cmd-btn" data-cmd="WHEEL" data-arg="wheel-setpoint" disabled>Aplicar nivel</button>
+      </div>
+      <p class="hint">Nivel de prueba −15 a +15. El cero se envía con Detener. Cada ensayo dura hasta 8 s. El nivel PWM no representa RPM.</p>
+      <p class="hint">El modo automático dura hasta 60 s. Requiere giróscopo calibrado y eje configurado.</p>
+      <div class="control-row">
+        <label for="wheel-axis">Eje y polaridad</label>
+        <select id="wheel-axis">
+          <option value="Z+">Z+</option><option value="Z-">Z−</option>
+          <option value="X+">X+</option><option value="X-">X−</option>
+          <option value="Y+">Y+</option><option value="Y-">Y−</option>
+        </select>
+        <button class="cmd-btn" data-cmd="WHEEL" data-arg="wheel-axis" data-prefix="AXIS_" disabled>Aplicar eje</button>
+      </div>
+      <p id="wheel-ready-countdown" hidden></p>
+      <p id="wheel-command-response" aria-live="polite">Sin órdenes de rueda</p>
+      <section class="adcs-test" aria-labelledby="adcs-test-1">
+        <h3 id="adcs-test-1">Prueba 1 · Frenado bidireccional</h3>
+        <button class="cmd-btn" data-cmd="WHEEL" data-value="DETUMBLE" data-confirm="true" disabled>Medir tiempo de frenado</button>
+        <p class="hint">Se confirma tras 2 s dentro de ±0,5 °/s. El tiempo indica cuándo entró en ese rango.</p>
+        <div class="metric-list">
+          <div><small>Tiempo de prueba</small><b id="adcs-elapsed">—</b></div>
+        </div>
+        <p id="adcs-result" data-test-result="1" aria-live="polite">Sin prueba</p>
+      </section>
+      <section class="adcs-test" aria-labelledby="adcs-test-2">
+        <h3 id="adcs-test-2">Prueba 2 · Seguimiento de luz</h3>
+        <div class="control-row">
+          <label for="reference-deg">Azimut inicial del CubeSat (°)</label>
+          <input id="reference-deg" type="number" min="0" max="359" step="1" value="0" required>
+          <button class="cmd-btn" data-cmd="WHEEL" data-arg="reference-deg" data-prefix="LIGHT" disabled>Seguir luz en Z</button>
+        </div>
+        <p class="hint">Asigna el azimut a la cara 1 al iniciar. Mirando desde +Z, las caras 1 a 4 corresponden a 0°, 90°, 180° y 270°.</p>
+        <label class="hint mission-light-option"><input type="checkbox" id="light-invert"> Más luz corresponde a menor voltaje</label>
+        <div class="metric-list">
+          <div><small>Azimut inicial</small><b id="maneuver-reference">—</b></div>
+          <div><small>Azimut de la luz en la referencia</small><b id="maneuver-light">—</b></div>
+        </div>
+        <p data-test-result="3" aria-live="polite">Sin prueba</p>
+      </section>
+      <section class="adcs-test" aria-labelledby="adcs-test-3">
+        <h3 id="adcs-test-3">Prueba 3 · Giro por ángulo</h3>
+        <div class="control-row">
+          <label for="turn-deg">Giro relativo (°)</label>
+          <input id="turn-deg" type="number" min="-180" max="180" step="1" value="45" required>
+          <button class="cmd-btn" data-cmd="WHEEL" data-arg="turn-deg" data-prefix="TURN" disabled>Ejecutar giro</button>
+        </div>
+        <div class="metric-list">
+          <div><small>Giro recorrido / objetivo</small><b id="maneuver-turn">—</b></div>
+        </div>
+        <p data-test-result="2" aria-live="polite">Sin prueba</p>
+      </section>
+      <h3>Calibración del GY‑91</h3>
+      <p id="adcs-sensors">Esperando datos del GY‑91</p>
+      <div class="command-grid">
+        <button class="cmd-btn" data-adcs-cal data-cmd="CAL_GYRO" data-confirm="true" disabled>Calibrar giroscopio</button>
+        <button class="cmd-btn" data-adcs-cal data-cmd="MAG_START" data-confirm="true" disabled>Iniciar calibración magnética</button>
+        <button class="cmd-btn" data-adcs-cal data-cmd="MAG_STOP" disabled>Finalizar calibración</button>
+        <button class="cmd-btn" data-adcs-cal data-cmd="SET_MODE" data-value="9DOF" disabled>Activar fusión 9DOF</button>
+      </div>
+      <p id="adcs-cal-response" aria-live="polite">Sin órdenes de calibración</p>
+    </div>
+  </div>
+</section>
+<section class="tab-panel cube-panel" id="tab-solar" aria-label="Paneles solares">
+  <div class="panel-head"><h2>Paneles solares</h2></div>
+  <div class="dashboard-grid">
+    <div class="web-card">
+      <h3>CubeSat con paneles desplegados</h3>
+      <div class="solar-scene" role="img" aria-label="CubeSat 3U con seis paneles, tres arriba y tres abajo">
+        <div class="solar-array solar-left"><i></i><i class="solar-bay"></i><i></i></div>
+        <div class="solar-array solar-body"><i></i><i class="solar-bay"></i><i></i></div>
+        <div class="solar-array solar-right"><i></i><i class="solar-bay"></i><i></i></div>
+      </div>
+    </div>
+    <div class="web-card">
+      <h3>Arreglo solar 2S3P</h3>
+      <p>Dos paneles en serie por rama. Las tres ramas se conectan en paralelo.</p>
+      <div class="eps-flow">
+        <div class="eps-inputs">
+          <div><small id="eps-solar-label">Pareja 1 · PC4</small><b data-eps-voltage="0">—</b></div>
+          <div data-eps-analog-only><small>Pareja 2 · PC5</small><b data-eps-voltage="1">—</b></div>
+          <div data-eps-analog-only><small>Pareja 3 · PA0</small><b data-eps-voltage="2">—</b></div>
+          <div id="eps-current-card" hidden><small>Corriente solar · INA219</small><b id="eps-current">—</b></div>
+        </div>
+        <span class="eps-arrow" aria-hidden="true">→</span>
+        <div class="eps-block">EPS</div>
+        <span class="eps-arrow" aria-hidden="true">→</span>
+        <div class="eps-battery">
+          <small id="eps-battery-label">Batería · PA1</small><b data-eps-voltage="3">—</b>
+          <div class="battery-outline" aria-hidden="true"><span id="eps-battery-fill"></span><i></i></div>
+          <small>Escala de voltaje 0–16 V</small>
+        </div>
+      </div>
+      <p class="hint" id="battery-charge-status">Estado de carga no medido. Requiere lectura de corriente o señal del EPS.</p>
+      <p class="hint" id="solar-legacy" hidden></p>
+      <p class="hint">Última muestra · <b id="solar-age">—</b></p>
+      <p id="solar-status" aria-live="polite">Esperando telemetría solar</p>
+      <svg class="chart-area" id="plot-solar" role="img" aria-label="Historial de voltaje de las tres parejas y la batería"></svg>
+      <div class="legend eps-legend" aria-label="Series del gráfico"><span id="eps-solar-series">Pareja 1</span><span data-eps-analog-only>Pareja 2</span><span data-eps-analog-only>Pareja 3</span><span>Batería</span></div>
+      <section class="test-panel-card" aria-labelledby="test-panel-title">
+        <div class="test-panel-drawing" role="img" aria-label="Un panel solar"></div>
+        <div>
+          <h3 id="test-panel-title">Panel de prueba · PC4</h3>
+          <div class="test-panel-reading"><span id="test-panel-voltage">00.00</span><span>V</span></div>
+          <p class="hint" id="test-panel-status" aria-live="polite">Sin lectura reciente</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+<section class="tab-panel cube-panel" id="tab-graficos" aria-label="Gráficos de telemetría">
+  <div class="panel-head"><div><h2>Gráficos · Sensores y enlace LoRa</h2><p>Series reales recibidas desde el Raspberry Pi Pico. No se generan valores cuando faltan muestras.</p></div><div class="panel-status" id="pico-status-3">Pico sin configurar</div></div>
+  <div class="charts-grid">
+    <div class="web-card"><h3>Cuaterniones</h3><svg class="chart-area" id="plot-q" role="img" aria-label="Gráfico de componentes quaternion"></svg><div class="legend"><span>🔵 q0</span><span>🟢 q1</span><span>🟡 q2</span><span>🟣 q3</span></div></div>
+    <div class="web-card"><h3>Norma del cuaternión</h3><svg class="chart-area" id="plot-norm" role="img" aria-label="Norma de cuaternión"></svg></div>
+    <div class="web-card"><h3>Aceleración (mg)</h3><svg class="chart-area" id="plot-acc" role="img" aria-label="Aceleración en mg"></svg></div>
+    <div class="web-card"><h3>Giroscopio (centi°/s)</h3><svg class="chart-area" id="plot-gyro" role="img" aria-label="Giroscopio"></svg></div>
+    <div class="web-card"><h3>Magnetómetro (décimas de µT)</h3><svg class="chart-area" id="plot-mag" role="img" aria-label="Magnetómetro"></svg></div>
+    <div class="web-card"><h3>Enlace RF</h3><div class="metric-list"><div><small>RSSI</small><b data-pico="rssi">—</b></div><div><small>SNR</small><b data-pico="snr">—</b></div><div><small>Error freq.</small><b data-pico="freq">—</b></div></div><p>Los indicadores representan el último paquete de radio recibido.</p></div>
+  </div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+if(!window.L){document.getElementById('planes').textContent='No se pudo cargar Leaflet: revisa la conexión a internet del PC.';} else {
+const map=L.map('map',{zoomControl:false}).setView([-33.45,-70.66],9);window.__radarMap=map;
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+const markers=new Map(); const paths=new Map();let firstAutoZoom=true;
+function esc(v){return String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function headingIcon(heading){let h=Number.isFinite(heading)?heading:0;const plane='<svg style="transform:rotate('+h+'deg)" viewBox="0 0 24 24" width="22" height="22" aria-label="Aeronave"><path d="M12 1.5c.7 0 1.3.7 1.3 1.7V10l8 5v2.1l-8-2.5v4.2l2.7 2.1V22l-4-1.2L8 22v-1.1l2.7-2.1v-4.2l-8 2.5V15l8-5V3.2c0-1 .6-1.7 1.3-1.7z"/></svg>';return L.divIcon({html:'<div class="plane-pin">'+plane+'</div>',className:'',iconSize:[31,31],iconAnchor:[15,15]});}
+function fmt(v,suffix=''){return v===null||v===undefined?'—':esc(v)+suffix;}
+function render(data){
+  document.getElementById('status').textContent=data.status;
+  document.getElementById('statusdot').className='dot '+(data.demo?'demo':data.status.startsWith('Conectado')?'':'error');
+  document.getElementById('demo-banner').style.display=data.demo?'block':'none';
+  document.getElementById('total').textContent=data.total;
+  document.getElementById('invalid').textContent=data.invalid;
+  document.getElementById('error').textContent=data.error||'';
+  const locations=data.aircraft.filter(a=>a.lat!==null&&a.lon!==null);
+  document.getElementById('mapcount').textContent=locations.length;
+  const seen=new Set();const newLatLngs=[];
+  for(const a of locations){
+    seen.add(a.icao);
+    const pos=[a.lat,a.lon];
+    const content='<b>'+esc(a.flight)+'</b> · '+esc(a.icao)+'<br>Altitud: '+fmt(a.altitude,' ft')+'<br>Velocidad: '+fmt(a.speed,' kt')+'<br>Rumbo: '+fmt(a.heading,'°')+'<br>Posición: '+Number(a.lat).toFixed(5)+', '+Number(a.lon).toFixed(5);
+    if(!markers.has(a.icao)){
+      const marker=L.marker(pos,{icon:headingIcon(a.heading)}).addTo(map);marker.bindPopup(content);markers.set(a.icao,marker);newLatLngs.push(pos);
+    }else{const marker=markers.get(a.icao);marker.setLatLng(pos);marker.setIcon(headingIcon(a.heading));marker.setPopupContent(content);}
+    if(!paths.has(a.icao))paths.set(a.icao,[]);
+    const path=paths.get(a.icao);
+    if(!path.length||Math.abs(path[path.length-1][0]-a.lat)>0.00002||Math.abs(path[path.length-1][1]-a.lon)>0.00002){path.push(pos);if(path.length>40)path.shift();}
+  }
+  for(const [icao, marker] of markers){if(!seen.has(icao)){map.removeLayer(marker);markers.delete(icao);paths.delete(icao);}}
+  if(firstAutoZoom&&locations.length){map.fitBounds(L.latLngBounds(locations.map(a=>[a.lat,a.lon])).pad(.3),{maxZoom:11});firstAutoZoom=false;}
+  const holder=document.getElementById('planes');holder.replaceChildren();
+  if(!data.aircraft.length){const el=document.createElement('div');el.className='empty';el.textContent='Esperando tramas de aeronaves por USART2. Comprueba COM y 115200 baudios.';holder.appendChild(el);}
+  for(const a of data.aircraft){
+    const el=document.createElement('div');el.className='plane-row';el.innerHTML='<div class="plane-title"><div><div class="flight">'+esc(a.flight)+'</div><div class="icao">ICAO: '+esc(a.icao)+'</div></div><span class="tag">'+(a.lat===null?'SIN GPS':'POSICIÓN')+'</span></div><div class="plane-data"><div><small>ALTITUD</small><b>'+fmt(a.altitude,' ft')+'</b></div><div><small>VELOCIDAD</small><b>'+fmt(a.speed,' kt')+'</b></div><div><small>RUMBO</small><b>'+fmt(a.heading,'°')+'</b></div><div><small>ÚLTIMO MENSAJE</small><b>'+Math.round(a.age)+' s</b></div></div>';
+    if(a.lat!==null){el.onclick=()=>{map.flyTo([a.lat,a.lon],Math.max(map.getZoom(),11));markers.get(a.icao)?.openPopup();};}
+    holder.appendChild(el);
+  }
+}
+let failCount=0;
+async function poll(){try{const r=await fetch('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());failCount=0;}catch(e){failCount++;document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}}
+setInterval(poll,1000);poll();
+}
+</script>
+<script defer src="/assets/cubesat_web.js"></script>
+</body>
+</html>

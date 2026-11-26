@@ -1,0 +1,45 @@
+{
+  "source_step_sha256": "2154547b565cf0c7eb87f4ee759988586db9c08f5e2e3b62d3be670d123c0de0",
+  "step_pin1_square_pad": [
+    30.48,
+    -43.218608,
+    11.175
+  ],
+  "step_header_rows_y": [
+    -43.218608,
+    -40.678608
+  ],
+  "pitch_mm": 2.54,
+  "transform": "shield_X=60.325-STEP_X; shield_Y=9.225955-STEP_Y",
+  "pin1_shield_mm": [
+    29.845,
+    52.444563
+  ],
+  "mounts_shield_mm": {
+    "H5": [
+      24.029543,
+      10.639541
+    ],
+    "H6": [
+      66.140457,
+      10.639541
+    ],
+    "H7": [
+      24.029543,
+      50.750459
+    ],
+    "H8": [
+      66.140457,
+      50.750459
+    ]
+  },
+  "mount_pitch_mm": [
+    42.110914,
+    40.110918
+  ],
+  "notes": "STEP model geometry, not a measurement of the physical unit. Component face -Z; square pad identifies pin1.",
+  "all_26_projected_centres_match": true,
+  "model_header_holes": 26,
+  "units": "mm",
+  "routing_adjustment": "Three GND segments moved locally to leave B.Cu access to PA10; electrical net unchanged"
+}

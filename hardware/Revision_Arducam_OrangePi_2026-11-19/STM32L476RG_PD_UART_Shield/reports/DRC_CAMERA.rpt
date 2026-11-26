@@ -1,0 +1,42 @@
+** Drc report for STM32L476RG_PD_UART_Shield.kicad_pcb **
+** Created on 2026-11-19T22:31:02 **
+** Report includes: Errors, Warnings, Exclusions **
+
+** Found 8 DRC violations **
+[lib_footprint_mismatch]: La huella 'PD_JST_XA_2' no coincide con la copia en la biblioteca 'PD_UART'
+    Local override; warning
+    @(27.0850 mm, 84.6950 mm): Footprint J3
+[lib_footprint_mismatch]: La huella 'R_LOAD_THT' no coincide con la copia en la biblioteca 'PD_UART'
+    Local override; warning
+    @(66.0850 mm, 72.6950 mm): Footprint R4
+[lib_footprint_mismatch]: La huella 'R_LOAD_THT' no coincide con la copia en la biblioteca 'PD_UART'
+    Local override; warning
+    @(27.0850 mm, 72.6950 mm): Footprint R1
+[lib_footprint_mismatch]: La huella 'PD_JST_XA_2' no coincide con la copia en la biblioteca 'PD_UART'
+    Local override; warning
+    @(40.0850 mm, 84.6950 mm): Footprint J4
+[lib_footprint_mismatch]: La huella 'R_LOAD_THT' no coincide con la copia en la biblioteca 'PD_UART'
+    Local override; warning
+    @(53.0850 mm, 72.6950 mm): Footprint R3
+[lib_footprint_mismatch]: La huella 'R_LOAD_THT' no coincide con la copia en la biblioteca 'PD_UART'
+    Local override; warning
+    @(40.0850 mm, 72.6950 mm): Footprint R2
+[lib_footprint_mismatch]: La huella 'PD_JST_XA_2' no coincide con la copia en la biblioteca 'PD_UART'
+    Local override; warning
+    @(53.0850 mm, 84.6950 mm): Footprint J5
+[lib_footprint_mismatch]: La huella 'PD_JST_XA_2' no coincide con la copia en la biblioteca 'PD_UART'
+    Local override; warning
+    @(66.0850 mm, 84.6950 mm): Footprint J6
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** Ignored checks **
+    - Footprint has no courtyard defined
+    - Track endpoint not centered on via
+    - Tuning profile track geometries
+    - Footprint doesn't match symbol's footprint filters
+    - Footprint component type doesn't match footprint pads
+
+** End of Report **

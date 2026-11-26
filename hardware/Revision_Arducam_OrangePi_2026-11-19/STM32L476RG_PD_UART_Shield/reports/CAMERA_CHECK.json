@@ -1,0 +1,81 @@
+{
+  "tracks": 143,
+  "vias": 18,
+  "bottom_length_percent": 78.3,
+  "active_J7": {
+    "1": "/OPI_CAM_3V3",
+    "3": "/OPI_CAM_SDA",
+    "5": "/OPI_CAM_SCL",
+    "6": "/GND",
+    "8": "/STM32_USART1_RX",
+    "10": "/STM32_USART1_TX",
+    "19": "/OPI_CAM_MOSI",
+    "21": "/OPI_CAM_MISO",
+    "23": "/OPI_CAM_SCLK",
+    "24": "/OPI_CAM_CS"
+  },
+  "inactive_J7": 16,
+  "all_existing_footprints_unchanged": true,
+  "all_existing_non_J7_pad_nets_unchanged": true,
+  "pad_departures": {
+    "J7.1": [
+      "B.Cu"
+    ],
+    "J7.3": [
+      "B.Cu"
+    ],
+    "J7.5": [
+      "B.Cu"
+    ],
+    "J7.6": [
+      "B.Cu"
+    ],
+    "J7.8": [
+      "B.Cu"
+    ],
+    "J7.10": [
+      "B.Cu"
+    ],
+    "J7.19": [
+      "B.Cu"
+    ],
+    "J7.21": [
+      "B.Cu"
+    ],
+    "J7.23": [
+      "B.Cu"
+    ],
+    "J7.24": [
+      "B.Cu"
+    ],
+    "J8.1": [
+      "B.Cu"
+    ],
+    "J8.2": [
+      "B.Cu"
+    ],
+    "J8.3": [
+      "B.Cu"
+    ],
+    "J8.4": [
+      "B.Cu"
+    ],
+    "J8.5": [
+      "B.Cu"
+    ],
+    "J8.6": [
+      "B.Cu"
+    ],
+    "J8.7": [
+      "B.Cu"
+    ],
+    "J8.8": [
+      "B.Cu"
+    ]
+  },
+  "camera_J8_pin1_mm": [
+    43,
+    60
+  ],
+  "camera_header_pitch_mm": 2.54
+}

@@ -1,0 +1,1 @@
+(fp_lib_table (version 7) (lib (name "PD_UART") (type "KiCad") (uri "${KIPRJMOD}/PD_UART.pretty") (options "") (descr "Local standard connector copies")))

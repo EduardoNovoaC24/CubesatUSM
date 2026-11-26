@@ -1,0 +1,8 @@
+/Debug/
+/Release/
+[Bb]uild/
+__pycache__/
+*.pyc
+*.kicad_prl
+lorawan_session.local.h
+.DS_Store

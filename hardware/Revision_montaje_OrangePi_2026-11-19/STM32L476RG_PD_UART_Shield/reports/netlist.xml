@@ -1,0 +1,813 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>C:\Users\educa\Documents\Codex\2026-10-14\files-pasted-by-the-user-proyecto\outputs\STM32L476RG_PD_UART_Shield\STM32L476RG_PD_UART_Shield.kicad_sch</source>
+    <date>2026-11-05T14:41:33</date>
+    <tool>Eeschema 10.0.5</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>PD UART upper shield - PASSIVE READOUT</title>
+        <company/>
+        <rev>0.2-P</rev>
+        <date>2026-11-05</date>
+        <source>STM32L476RG_PD_UART_Shield.kicad_sch</source>
+        <comment number="1" value="R_LOAD TBD - SENSOR Y MECANICA PENDIENTES"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="J1">
+      <value>CN7 STACK INPUT</value>
+      <footprint>PD_UART:Morpho_2x19_PTH</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:Morpho_2x19_PTH</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="MORPHO_CN7" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>7bccfbbe-6973-4888-8c22-fbd9ccf1686c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="3"/>
+            <pin num="5"/>
+            <pin num="7"/>
+            <pin num="9"/>
+            <pin num="11"/>
+            <pin num="13"/>
+            <pin num="15"/>
+            <pin num="17"/>
+            <pin num="19"/>
+            <pin num="21"/>
+            <pin num="23"/>
+            <pin num="25"/>
+            <pin num="27"/>
+            <pin num="29"/>
+            <pin num="31"/>
+            <pin num="33"/>
+            <pin num="35"/>
+            <pin num="37"/>
+            <pin num="2"/>
+            <pin num="4"/>
+            <pin num="6"/>
+            <pin num="8"/>
+            <pin num="10"/>
+            <pin num="12"/>
+            <pin num="14"/>
+            <pin num="16"/>
+            <pin num="18"/>
+            <pin num="20"/>
+            <pin num="22"/>
+            <pin num="24"/>
+            <pin num="26"/>
+            <pin num="28"/>
+            <pin num="30"/>
+            <pin num="32"/>
+            <pin num="34"/>
+            <pin num="36"/>
+            <pin num="38"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J2">
+      <value>CN10 STACK INPUT</value>
+      <footprint>PD_UART:Morpho_2x19_PTH</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:Morpho_2x19_PTH</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="MORPHO_CN10" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>3fe797bb-5a23-4c00-a657-0632d57b690b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="3"/>
+            <pin num="5"/>
+            <pin num="7"/>
+            <pin num="9"/>
+            <pin num="11"/>
+            <pin num="13"/>
+            <pin num="15"/>
+            <pin num="17"/>
+            <pin num="19"/>
+            <pin num="21"/>
+            <pin num="23"/>
+            <pin num="25"/>
+            <pin num="27"/>
+            <pin num="29"/>
+            <pin num="31"/>
+            <pin num="33"/>
+            <pin num="35"/>
+            <pin num="37"/>
+            <pin num="2"/>
+            <pin num="4"/>
+            <pin num="6"/>
+            <pin num="8"/>
+            <pin num="10"/>
+            <pin num="12"/>
+            <pin num="14"/>
+            <pin num="16"/>
+            <pin num="18"/>
+            <pin num="20"/>
+            <pin num="22"/>
+            <pin num="24"/>
+            <pin num="26"/>
+            <pin num="28"/>
+            <pin num="30"/>
+            <pin num="32"/>
+            <pin num="34"/>
+            <pin num="36"/>
+            <pin num="38"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J3">
+      <value>J_PD_X_POS / A-K PROVISIONAL</value>
+      <footprint>PD_UART:PD_JST_XA_2</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:PD_JST_XA_2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="PD_X_POS" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>337ef158-fd67-438c-a2bb-5579e95d21c2</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J4">
+      <value>J_PD_X_NEG / A-K PROVISIONAL</value>
+      <footprint>PD_UART:PD_JST_XA_2</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:PD_JST_XA_2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="PD_X_NEG" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>3334b1cb-fada-49a8-a1ab-fb7d092e9eab</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J5">
+      <value>J_PD_Y_POS / A-K PROVISIONAL</value>
+      <footprint>PD_UART:PD_JST_XA_2</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:PD_JST_XA_2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="PD_Y_POS" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>74564e3e-f7d3-4d8d-887f-5a27c6cd8ea8</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J6">
+      <value>J_PD_Y_NEG / A-K PROVISIONAL</value>
+      <footprint>PD_UART:PD_JST_XA_2</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:PD_JST_XA_2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="PD_Y_NEG" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>07bec4d9-4692-448f-aeb2-62cd8b0e1930</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J7">
+      <value>ORANGE PI UART / 3V3 LOGIC</value>
+      <footprint>PD_UART:UART_JST_XH_3</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:UART_JST_XH_3</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="ORANGE_PI_UART" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>38fc65fc-6cfb-4b1e-a0af-a4bd6c5dc2a7</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R1">
+      <value>R_LOAD TBD / FIT BEFORE USE</value>
+      <footprint>PD_UART:R_LOAD_THT</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:R_LOAD_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="LOAD_X_POS" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>9c793058-cfec-49ef-a446-bee7c41d8a0d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R2">
+      <value>R_LOAD TBD / FIT BEFORE USE</value>
+      <footprint>PD_UART:R_LOAD_THT</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:R_LOAD_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="LOAD_X_NEG" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ab11a771-c246-4284-8f97-74070202deee</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R3">
+      <value>R_LOAD TBD / FIT BEFORE USE</value>
+      <footprint>PD_UART:R_LOAD_THT</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:R_LOAD_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="LOAD_Y_POS" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>65b1bc1e-7523-403f-9839-9cf2ed7073e5</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R4">
+      <value>R_LOAD TBD / FIT BEFORE USE</value>
+      <footprint>PD_UART:R_LOAD_THT</footprint>
+      <fields>
+        <field name="Footprint">PD_UART:R_LOAD_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="PD_UART" part="LOAD_Y_NEG" description=""/>
+      <property name="Sheetname" value="STM32L476RG_PD_UART_Shield"/>
+      <property name="Sheetfile" value="STM32L476RG_PD_UART_Shield.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>f6a251e8-4e77-421a-8402-ddba7acbf41e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="PD_UART" part="LOAD_X_NEG">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">LOAD_X_NEG</field>
+        <field name="Footprint">PD_UART:R_LOAD_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="LOAD_X_POS">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">LOAD_X_POS</field>
+        <field name="Footprint">PD_UART:R_LOAD_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="LOAD_Y_NEG">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">LOAD_Y_NEG</field>
+        <field name="Footprint">PD_UART:R_LOAD_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="LOAD_Y_POS">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">LOAD_Y_POS</field>
+        <field name="Footprint">PD_UART:R_LOAD_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="MORPHO_CN10">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">MORPHO_CN10</field>
+        <field name="Footprint">PD_UART:Morpho_2x19_PTH</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="PC9" type="passive"/>
+        <pin num="2" name="PC8" type="passive"/>
+        <pin num="3" name="PB8" type="passive"/>
+        <pin num="4" name="PC6" type="passive"/>
+        <pin num="5" name="PB9" type="passive"/>
+        <pin num="6" name="PC5" type="passive"/>
+        <pin num="7" name="AVDD" type="passive"/>
+        <pin num="8" name="U5V" type="passive"/>
+        <pin num="9" name="GND" type="passive"/>
+        <pin num="10" name="NC" type="passive"/>
+        <pin num="11" name="PA5" type="passive"/>
+        <pin num="12" name="PA12" type="passive"/>
+        <pin num="13" name="PA6" type="passive"/>
+        <pin num="14" name="PA11" type="passive"/>
+        <pin num="15" name="PA7" type="passive"/>
+        <pin num="16" name="PB12" type="passive"/>
+        <pin num="17" name="PB6" type="passive"/>
+        <pin num="18" name="PB11" type="passive"/>
+        <pin num="19" name="PC7" type="passive"/>
+        <pin num="20" name="GND" type="passive"/>
+        <pin num="21" name="PA9" type="output"/>
+        <pin num="22" name="PB2" type="passive"/>
+        <pin num="23" name="PA8" type="passive"/>
+        <pin num="24" name="PB1" type="passive"/>
+        <pin num="25" name="PB10" type="passive"/>
+        <pin num="26" name="PB15" type="passive"/>
+        <pin num="27" name="PB4" type="passive"/>
+        <pin num="28" name="PB14" type="passive"/>
+        <pin num="29" name="PB5" type="passive"/>
+        <pin num="30" name="PB13" type="passive"/>
+        <pin num="31" name="PB3" type="passive"/>
+        <pin num="32" name="AGND" type="passive"/>
+        <pin num="33" name="PA10" type="input"/>
+        <pin num="34" name="PC4" type="passive"/>
+        <pin num="35" name="PA2" type="passive"/>
+        <pin num="36" name="NC" type="passive"/>
+        <pin num="37" name="PA3" type="passive"/>
+        <pin num="38" name="NC" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="MORPHO_CN7">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">MORPHO_CN7</field>
+        <field name="Footprint">PD_UART:Morpho_2x19_PTH</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="PC10" type="passive"/>
+        <pin num="2" name="PC11" type="passive"/>
+        <pin num="3" name="PC12" type="passive"/>
+        <pin num="4" name="PD2" type="passive"/>
+        <pin num="5" name="VDD" type="passive"/>
+        <pin num="6" name="E5V" type="passive"/>
+        <pin num="7" name="BOOT0" type="passive"/>
+        <pin num="8" name="GND" type="passive"/>
+        <pin num="9" name="NC" type="passive"/>
+        <pin num="10" name="NC" type="passive"/>
+        <pin num="11" name="NC" type="passive"/>
+        <pin num="12" name="IOREF" type="passive"/>
+        <pin num="13" name="PA13" type="passive"/>
+        <pin num="14" name="RESET" type="passive"/>
+        <pin num="15" name="PA14" type="passive"/>
+        <pin num="16" name="3V3" type="passive"/>
+        <pin num="17" name="PA15" type="passive"/>
+        <pin num="18" name="5V" type="passive"/>
+        <pin num="19" name="GND" type="passive"/>
+        <pin num="20" name="GND" type="power_out"/>
+        <pin num="21" name="PB7" type="passive"/>
+        <pin num="22" name="GND" type="passive"/>
+        <pin num="23" name="PC13" type="passive"/>
+        <pin num="24" name="VIN" type="passive"/>
+        <pin num="25" name="PC14" type="passive"/>
+        <pin num="26" name="NC" type="passive"/>
+        <pin num="27" name="PC15" type="passive"/>
+        <pin num="28" name="PA0" type="passive"/>
+        <pin num="29" name="PH0" type="passive"/>
+        <pin num="30" name="PA1" type="passive"/>
+        <pin num="31" name="PH1" type="passive"/>
+        <pin num="32" name="PA4" type="passive"/>
+        <pin num="33" name="VBAT" type="passive"/>
+        <pin num="34" name="PB0" type="passive"/>
+        <pin num="35" name="PC2" type="passive"/>
+        <pin num="36" name="PC1_or_PB9" type="passive"/>
+        <pin num="37" name="PC3" type="passive"/>
+        <pin num="38" name="PC0" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="ORANGE_PI_UART">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">ORANGE_PI_UART</field>
+        <field name="Footprint">PD_UART:UART_JST_XH_3</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="OPI_TX_TO_STM_RX" type="output"/>
+        <pin num="2" name="OPI_RX_FROM_STM_TX" type="input"/>
+        <pin num="3" name="GND" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="PD_X_NEG">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">PD_X_NEG</field>
+        <field name="Footprint">PD_UART:PD_JST_XA_2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="A_PROV" type="passive"/>
+        <pin num="2" name="K_PROV" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="PD_X_POS">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">PD_X_POS</field>
+        <field name="Footprint">PD_UART:PD_JST_XA_2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="A_PROV" type="passive"/>
+        <pin num="2" name="K_PROV" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="PD_Y_NEG">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">PD_Y_NEG</field>
+        <field name="Footprint">PD_UART:PD_JST_XA_2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="A_PROV" type="passive"/>
+        <pin num="2" name="K_PROV" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="PD_UART" part="PD_Y_POS">
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">PD_Y_POS</field>
+        <field name="Footprint">PD_UART:PD_JST_XA_2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="A_PROV" type="passive"/>
+        <pin num="2" name="K_PROV" type="passive"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="PD_UART">
+      <uri>${KIPRJMOD}/PD_UART.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/GND" class="Default">
+      <node ref="J1" pin="20" pinfunction="GND_20" pintype="power_out"/>
+      <node ref="J2" pin="20" pinfunction="GND_20" pintype="passive"/>
+      <node ref="J3" pin="2" pinfunction="K_PROV_2" pintype="passive"/>
+      <node ref="J4" pin="2" pinfunction="K_PROV_2" pintype="passive"/>
+      <node ref="J5" pin="2" pinfunction="K_PROV_2" pintype="passive"/>
+      <node ref="J6" pin="2" pinfunction="K_PROV_2" pintype="passive"/>
+      <node ref="J7" pin="3" pinfunction="GND_3" pintype="passive"/>
+      <node ref="R1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R2" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R3" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R4" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="2" name="/PD_ADC_X_NEG" class="Default">
+      <node ref="J1" pin="30" pinfunction="PA1_30" pintype="passive"/>
+      <node ref="J4" pin="1" pinfunction="A_PROV_1" pintype="passive"/>
+      <node ref="R2" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="3" name="/PD_ADC_X_POS" class="Default">
+      <node ref="J1" pin="28" pinfunction="PA0_28" pintype="passive"/>
+      <node ref="J3" pin="1" pinfunction="A_PROV_1" pintype="passive"/>
+      <node ref="R1" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="4" name="/PD_ADC_Y_NEG" class="Default">
+      <node ref="J1" pin="37" pinfunction="PC3_37" pintype="passive"/>
+      <node ref="J6" pin="1" pinfunction="A_PROV_1" pintype="passive"/>
+      <node ref="R4" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="5" name="/PD_ADC_Y_POS" class="Default">
+      <node ref="J1" pin="35" pinfunction="PC2_35" pintype="passive"/>
+      <node ref="J5" pin="1" pinfunction="A_PROV_1" pintype="passive"/>
+      <node ref="R3" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="6" name="/STM32_USART1_RX" class="Default">
+      <node ref="J2" pin="33" pinfunction="PA10_33" pintype="input"/>
+      <node ref="J7" pin="1" pinfunction="OPI_TX_TO_STM_RX_1" pintype="output"/>
+    </net>
+    <net code="7" name="/STM32_USART1_TX" class="Default">
+      <node ref="J2" pin="21" pinfunction="PA9_21" pintype="output"/>
+      <node ref="J7" pin="2" pinfunction="OPI_RX_FROM_STM_TX_2" pintype="input"/>
+    </net>
+    <net code="8" name="unconnected-(J1-3V3-Pad16)" class="Default">
+      <node ref="J1" pin="16" pinfunction="3V3_16" pintype="passive+no_connect"/>
+    </net>
+    <net code="9" name="unconnected-(J1-5V-Pad18)" class="Default">
+      <node ref="J1" pin="18" pinfunction="5V_18" pintype="passive+no_connect"/>
+    </net>
+    <net code="10" name="unconnected-(J1-BOOT0-Pad7)" class="Default">
+      <node ref="J1" pin="7" pinfunction="BOOT0_7" pintype="passive+no_connect"/>
+    </net>
+    <net code="11" name="unconnected-(J1-E5V-Pad6)" class="Default">
+      <node ref="J1" pin="6" pinfunction="E5V_6" pintype="passive+no_connect"/>
+    </net>
+    <net code="12" name="unconnected-(J1-GND-Pad8)" class="Default">
+      <node ref="J1" pin="8" pinfunction="GND_8" pintype="passive+no_connect"/>
+    </net>
+    <net code="13" name="unconnected-(J1-GND-Pad19)" class="Default">
+      <node ref="J1" pin="19" pinfunction="GND_19" pintype="passive+no_connect"/>
+    </net>
+    <net code="14" name="unconnected-(J1-GND-Pad22)" class="Default">
+      <node ref="J1" pin="22" pinfunction="GND_22" pintype="passive+no_connect"/>
+    </net>
+    <net code="15" name="unconnected-(J1-IOREF-Pad12)" class="Default">
+      <node ref="J1" pin="12" pinfunction="IOREF_12" pintype="passive+no_connect"/>
+    </net>
+    <net code="16" name="unconnected-(J1-NC-Pad9)" class="Default">
+      <node ref="J1" pin="9" pinfunction="NC_9" pintype="passive+no_connect"/>
+    </net>
+    <net code="17" name="unconnected-(J1-NC-Pad10)" class="Default">
+      <node ref="J1" pin="10" pinfunction="NC_10" pintype="passive+no_connect"/>
+    </net>
+    <net code="18" name="unconnected-(J1-NC-Pad11)" class="Default">
+      <node ref="J1" pin="11" pinfunction="NC_11" pintype="passive+no_connect"/>
+    </net>
+    <net code="19" name="unconnected-(J1-NC-Pad26)" class="Default">
+      <node ref="J1" pin="26" pinfunction="NC_26" pintype="passive+no_connect"/>
+    </net>
+    <net code="20" name="unconnected-(J1-PA4-Pad32)" class="Default">
+      <node ref="J1" pin="32" pinfunction="PA4_32" pintype="passive+no_connect"/>
+    </net>
+    <net code="21" name="unconnected-(J1-PA13-Pad13)" class="Default">
+      <node ref="J1" pin="13" pinfunction="PA13_13" pintype="passive+no_connect"/>
+    </net>
+    <net code="22" name="unconnected-(J1-PA14-Pad15)" class="Default">
+      <node ref="J1" pin="15" pinfunction="PA14_15" pintype="passive+no_connect"/>
+    </net>
+    <net code="23" name="unconnected-(J1-PA15-Pad17)" class="Default">
+      <node ref="J1" pin="17" pinfunction="PA15_17" pintype="passive+no_connect"/>
+    </net>
+    <net code="24" name="unconnected-(J1-PB0-Pad34)" class="Default">
+      <node ref="J1" pin="34" pinfunction="PB0_34" pintype="passive+no_connect"/>
+    </net>
+    <net code="25" name="unconnected-(J1-PB7-Pad21)" class="Default">
+      <node ref="J1" pin="21" pinfunction="PB7_21" pintype="passive+no_connect"/>
+    </net>
+    <net code="26" name="unconnected-(J1-PC0-Pad38)" class="Default">
+      <node ref="J1" pin="38" pinfunction="PC0_38" pintype="passive+no_connect"/>
+    </net>
+    <net code="27" name="unconnected-(J1-PC1_or_PB9-Pad36)" class="Default">
+      <node ref="J1" pin="36" pinfunction="PC1_or_PB9_36" pintype="passive+no_connect"/>
+    </net>
+    <net code="28" name="unconnected-(J1-PC10-Pad1)" class="Default">
+      <node ref="J1" pin="1" pinfunction="PC10_1" pintype="passive+no_connect"/>
+    </net>
+    <net code="29" name="unconnected-(J1-PC11-Pad2)" class="Default">
+      <node ref="J1" pin="2" pinfunction="PC11_2" pintype="passive+no_connect"/>
+    </net>
+    <net code="30" name="unconnected-(J1-PC12-Pad3)" class="Default">
+      <node ref="J1" pin="3" pinfunction="PC12_3" pintype="passive+no_connect"/>
+    </net>
+    <net code="31" name="unconnected-(J1-PC13-Pad23)" class="Default">
+      <node ref="J1" pin="23" pinfunction="PC13_23" pintype="passive+no_connect"/>
+    </net>
+    <net code="32" name="unconnected-(J1-PC14-Pad25)" class="Default">
+      <node ref="J1" pin="25" pinfunction="PC14_25" pintype="passive+no_connect"/>
+    </net>
+    <net code="33" name="unconnected-(J1-PC15-Pad27)" class="Default">
+      <node ref="J1" pin="27" pinfunction="PC15_27" pintype="passive+no_connect"/>
+    </net>
+    <net code="34" name="unconnected-(J1-PD2-Pad4)" class="Default">
+      <node ref="J1" pin="4" pinfunction="PD2_4" pintype="passive+no_connect"/>
+    </net>
+    <net code="35" name="unconnected-(J1-PH0-Pad29)" class="Default">
+      <node ref="J1" pin="29" pinfunction="PH0_29" pintype="passive+no_connect"/>
+    </net>
+    <net code="36" name="unconnected-(J1-PH1-Pad31)" class="Default">
+      <node ref="J1" pin="31" pinfunction="PH1_31" pintype="passive+no_connect"/>
+    </net>
+    <net code="37" name="unconnected-(J1-RESET-Pad14)" class="Default">
+      <node ref="J1" pin="14" pinfunction="RESET_14" pintype="passive+no_connect"/>
+    </net>
+    <net code="38" name="unconnected-(J1-VBAT-Pad33)" class="Default">
+      <node ref="J1" pin="33" pinfunction="VBAT_33" pintype="passive+no_connect"/>
+    </net>
+    <net code="39" name="unconnected-(J1-VDD-Pad5)" class="Default">
+      <node ref="J1" pin="5" pinfunction="VDD_5" pintype="passive+no_connect"/>
+    </net>
+    <net code="40" name="unconnected-(J1-VIN-Pad24)" class="Default">
+      <node ref="J1" pin="24" pinfunction="VIN_24" pintype="passive+no_connect"/>
+    </net>
+    <net code="41" name="unconnected-(J2-AGND-Pad32)" class="Default">
+      <node ref="J2" pin="32" pinfunction="AGND_32" pintype="passive+no_connect"/>
+    </net>
+    <net code="42" name="unconnected-(J2-AVDD-Pad7)" class="Default">
+      <node ref="J2" pin="7" pinfunction="AVDD_7" pintype="passive+no_connect"/>
+    </net>
+    <net code="43" name="unconnected-(J2-GND-Pad9)" class="Default">
+      <node ref="J2" pin="9" pinfunction="GND_9" pintype="passive+no_connect"/>
+    </net>
+    <net code="44" name="unconnected-(J2-NC-Pad10)" class="Default">
+      <node ref="J2" pin="10" pinfunction="NC_10" pintype="passive+no_connect"/>
+    </net>
+    <net code="45" name="unconnected-(J2-NC-Pad36)" class="Default">
+      <node ref="J2" pin="36" pinfunction="NC_36" pintype="passive+no_connect"/>
+    </net>
+    <net code="46" name="unconnected-(J2-NC-Pad38)" class="Default">
+      <node ref="J2" pin="38" pinfunction="NC_38" pintype="passive+no_connect"/>
+    </net>
+    <net code="47" name="unconnected-(J2-PA2-Pad35)" class="Default">
+      <node ref="J2" pin="35" pinfunction="PA2_35" pintype="passive+no_connect"/>
+    </net>
+    <net code="48" name="unconnected-(J2-PA3-Pad37)" class="Default">
+      <node ref="J2" pin="37" pinfunction="PA3_37" pintype="passive+no_connect"/>
+    </net>
+    <net code="49" name="unconnected-(J2-PA5-Pad11)" class="Default">
+      <node ref="J2" pin="11" pinfunction="PA5_11" pintype="passive+no_connect"/>
+    </net>
+    <net code="50" name="unconnected-(J2-PA6-Pad13)" class="Default">
+      <node ref="J2" pin="13" pinfunction="PA6_13" pintype="passive+no_connect"/>
+    </net>
+    <net code="51" name="unconnected-(J2-PA7-Pad15)" class="Default">
+      <node ref="J2" pin="15" pinfunction="PA7_15" pintype="passive+no_connect"/>
+    </net>
+    <net code="52" name="unconnected-(J2-PA8-Pad23)" class="Default">
+      <node ref="J2" pin="23" pinfunction="PA8_23" pintype="passive+no_connect"/>
+    </net>
+    <net code="53" name="unconnected-(J2-PA11-Pad14)" class="Default">
+      <node ref="J2" pin="14" pinfunction="PA11_14" pintype="passive+no_connect"/>
+    </net>
+    <net code="54" name="unconnected-(J2-PA12-Pad12)" class="Default">
+      <node ref="J2" pin="12" pinfunction="PA12_12" pintype="passive+no_connect"/>
+    </net>
+    <net code="55" name="unconnected-(J2-PB1-Pad24)" class="Default">
+      <node ref="J2" pin="24" pinfunction="PB1_24" pintype="passive+no_connect"/>
+    </net>
+    <net code="56" name="unconnected-(J2-PB2-Pad22)" class="Default">
+      <node ref="J2" pin="22" pinfunction="PB2_22" pintype="passive+no_connect"/>
+    </net>
+    <net code="57" name="unconnected-(J2-PB3-Pad31)" class="Default">
+      <node ref="J2" pin="31" pinfunction="PB3_31" pintype="passive+no_connect"/>
+    </net>
+    <net code="58" name="unconnected-(J2-PB4-Pad27)" class="Default">
+      <node ref="J2" pin="27" pinfunction="PB4_27" pintype="passive+no_connect"/>
+    </net>
+    <net code="59" name="unconnected-(J2-PB5-Pad29)" class="Default">
+      <node ref="J2" pin="29" pinfunction="PB5_29" pintype="passive+no_connect"/>
+    </net>
+    <net code="60" name="unconnected-(J2-PB6-Pad17)" class="Default">
+      <node ref="J2" pin="17" pinfunction="PB6_17" pintype="passive+no_connect"/>
+    </net>
+    <net code="61" name="unconnected-(J2-PB8-Pad3)" class="Default">
+      <node ref="J2" pin="3" pinfunction="PB8_3" pintype="passive+no_connect"/>
+    </net>
+    <net code="62" name="unconnected-(J2-PB9-Pad5)" class="Default">
+      <node ref="J2" pin="5" pinfunction="PB9_5" pintype="passive+no_connect"/>
+    </net>
+    <net code="63" name="unconnected-(J2-PB10-Pad25)" class="Default">
+      <node ref="J2" pin="25" pinfunction="PB10_25" pintype="passive+no_connect"/>
+    </net>
+    <net code="64" name="unconnected-(J2-PB11-Pad18)" class="Default">
+      <node ref="J2" pin="18" pinfunction="PB11_18" pintype="passive+no_connect"/>
+    </net>
+    <net code="65" name="unconnected-(J2-PB12-Pad16)" class="Default">
+      <node ref="J2" pin="16" pinfunction="PB12_16" pintype="passive+no_connect"/>
+    </net>
+    <net code="66" name="unconnected-(J2-PB13-Pad30)" class="Default">
+      <node ref="J2" pin="30" pinfunction="PB13_30" pintype="passive+no_connect"/>
+    </net>
+    <net code="67" name="unconnected-(J2-PB14-Pad28)" class="Default">
+      <node ref="J2" pin="28" pinfunction="PB14_28" pintype="passive+no_connect"/>
+    </net>
+    <net code="68" name="unconnected-(J2-PB15-Pad26)" class="Default">
+      <node ref="J2" pin="26" pinfunction="PB15_26" pintype="passive+no_connect"/>
+    </net>
+    <net code="69" name="unconnected-(J2-PC4-Pad34)" class="Default">
+      <node ref="J2" pin="34" pinfunction="PC4_34" pintype="passive+no_connect"/>
+    </net>
+    <net code="70" name="unconnected-(J2-PC5-Pad6)" class="Default">
+      <node ref="J2" pin="6" pinfunction="PC5_6" pintype="passive+no_connect"/>
+    </net>
+    <net code="71" name="unconnected-(J2-PC6-Pad4)" class="Default">
+      <node ref="J2" pin="4" pinfunction="PC6_4" pintype="passive+no_connect"/>
+    </net>
+    <net code="72" name="unconnected-(J2-PC7-Pad19)" class="Default">
+      <node ref="J2" pin="19" pinfunction="PC7_19" pintype="passive+no_connect"/>
+    </net>
+    <net code="73" name="unconnected-(J2-PC8-Pad2)" class="Default">
+      <node ref="J2" pin="2" pinfunction="PC8_2" pintype="passive+no_connect"/>
+    </net>
+    <net code="74" name="unconnected-(J2-PC9-Pad1)" class="Default">
+      <node ref="J2" pin="1" pinfunction="PC9_1" pintype="passive+no_connect"/>
+    </net>
+    <net code="75" name="unconnected-(J2-U5V-Pad8)" class="Default">
+      <node ref="J2" pin="8" pinfunction="U5V_8" pintype="passive+no_connect"/>
+    </net>
+  </nets>
+</export>

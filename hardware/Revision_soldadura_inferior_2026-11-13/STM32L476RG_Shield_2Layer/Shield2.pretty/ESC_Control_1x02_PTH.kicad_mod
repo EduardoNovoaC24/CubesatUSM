@@ -1,0 +1,110 @@
+(footprint "ESC_Control_1x02_PTH"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(property "Reference" "J5"
+		(at 0 -3 0)
+		(layer "F.SilkS")
+		(uuid "a8e80afc-9f78-4663-acf0-e04fc7adde35")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "ESC CONTROL / GND"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "6a7e2c98-1d81-4471-9067-03d819019919")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "b09f3c32-24d9-4fe1-bb02-306d2e4eca44")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "0c2761fd-9890-4508-a1a0-7c28ef2e2d64")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -1.75 -1.75)
+		(end 4.29 -1.75)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "1fb64fec-037f-483a-a531-46e2f6484652")
+	)
+	(fp_line
+		(start -1.75 1.75)
+		(end -1.75 -1.75)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "32eb5b6f-8f39-4a83-903c-1a09341b9de6")
+	)
+	(fp_line
+		(start 4.29 -1.75)
+		(end 4.29 1.75)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "c460c91a-b047-4b6b-8f16-b98b9047c56a")
+	)
+	(fp_line
+		(start 4.29 1.75)
+		(end -1.75 1.75)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "f5bf6d73-acf7-4fcd-bd7d-e9685e01e381")
+	)
+	(pad "1" thru_hole oval
+		(at 0 0)
+		(size 2 3)
+		(drill 1)
+		(layers "*.Cu")
+		(remove_unused_layers no)
+		(thermal_bridge_angle 45)
+		(uuid "42027046-6524-40f3-925b-ed06824eb6b8")
+	)
+	(pad "2" thru_hole oval
+		(at 2.54 0)
+		(size 2 3)
+		(drill 1)
+		(layers "*.Cu")
+		(remove_unused_layers no)
+		(thermal_bridge_angle 45)
+		(uuid "a39a8116-b226-412e-85ce-beb76b2e2e2f")
+	)
+	(embedded_fonts no)
+)

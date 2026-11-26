@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-19",
+  "basis": "User confirmed hole pattern 42x40mm and M3 screws",
+  "OrangePi_body_origin_mm": [
+    21.085,
+    7.695
+  ],
+  "body_size_mm": [
+    48,
+    46
+  ],
+  "hole_pattern_mm": [
+    42,
+    40
+  ],
+  "drill_mm": 3.2,
+  "hardware_envelope_mm": 7,
+  "source_pcb_sha256": "6ed02f5748eaf6e46779faea6d5769eb3c39e1bd74e9dbf41967259da8006eb4",
+  "holes": [
+    {
+      "reference": "H5",
+      "x_mm": 24.085,
+      "y_mm": 10.695
+    },
+    {
+      "reference": "H6",
+      "x_mm": 66.085,
+      "y_mm": 10.695
+    },
+    {
+      "reference": "H7",
+      "x_mm": 24.085,
+      "y_mm": 50.695
+    },
+    {
+      "reference": "H8",
+      "x_mm": 66.085,
+      "y_mm": 50.695
+    }
+  ]
+}

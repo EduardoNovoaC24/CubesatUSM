@@ -1,0 +1,20 @@
+{
+  "contacts": 26,
+  "step_grid_exact": true,
+  "pin1_square": true,
+  "active_signals": {
+    "6": "/GND",
+    "8": "/STM32_USART1_RX",
+    "10": "/STM32_USART1_TX"
+  },
+  "signal_mapping_correct": true,
+  "other_23_pins_unconnected": true,
+  "tracks": 85,
+  "vias": 4,
+  "B_Cu_percent": 84.0,
+  "J7_departures_B_Cu": {
+    "6": true,
+    "8": true,
+    "10": true
+  }
+}

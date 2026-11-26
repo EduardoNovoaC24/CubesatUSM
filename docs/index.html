@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CubeSat - Ground Station</title>
+<link rel="stylesheet" href="./station.css">
+<main>
+  <header class="masthead">
+    <div>
+      <h1>CubeSat - Ground Station</h1>
+      <p>Estación LoRa P2P</p>
+      <label for="theme">Galaxia</label>
+      <select id="theme">
+        <option value="nebula">Azul y morado</option>
+        <option value="red">Roja</option>
+        <option value="green">Verde</option>
+      </select>
+    </div>
+    <canvas id="cubesat" role="img" aria-label="CubeSat formado por partículas"></canvas>
+  </header>
+  <nav class="tabs" aria-label="Estación LoRa" role="tablist">
+    <button id="tab-connection" role="tab" aria-selected="true" aria-controls="panel-connection">Conexión</button>
+    <button id="tab-telemetry" role="tab" aria-selected="false" aria-controls="panel-telemetry" tabindex="-1">Telemetría</button>
+    <button id="tab-commands" role="tab" aria-selected="false" aria-controls="panel-commands" tabindex="-1">Telecomandos</button>
+    <button id="tab-logs" role="tab" aria-selected="false" aria-controls="panel-logs" tabindex="-1">Registro</button>
+  </nav>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <section id="panel-connection" role="tabpanel" aria-labelledby="tab-connection">
+    <h2 id="connection-title">Pico por USB</h2>
+    <details>
+      <summary>Cómo conectar desde otro PC</summary>
+      <ol>
+        <li>Abre esta página en Chrome de escritorio y conecta el Pico LoRa con un cable USB de datos.</li>
+        <li>Cierra el monitor serie de Arduino y la estación Python si están usando ese puerto.</li>
+        <li>Pulsa «Conectar Pico», elige el puerto que apareció al conectar la placa y acepta el permiso.</li>
+        <li>Cuando veas «radio lista», envía <code>PING</code> y busca un <code>ACK</code> del STM32.</li>
+      </ol>
+      <p>El permiso de Chrome habilita el puerto en ese PC. La estación LoRa P2P funciona sin contraseña.</p>
+    </details>
+    <button id="connect">Conectar Pico</button>
+    <button id="disconnect" disabled>Desconectar</button>
+    <p id="status" role="status">Conecta el Pico por USB y selecciona su puerto.</p>
+  </section>
+  <section id="panel-telemetry" role="tabpanel" aria-labelledby="tab-telemetry" hidden>
+    <h2 id="telemetry-title">Última telemetría</h2>
+    <pre id="telemetry">Esperando datos.</pre>
+  </section>
+  <section id="panel-commands" role="tabpanel" aria-labelledby="tab-commands" hidden>
+    <h2 id="command-title">Telecomandos</h2>
+    <form id="controls">
+      <fieldset id="fields" disabled>
+        <legend>Enviar al STM32</legend>
+        <label for="command">Comando</label>
+        <select id="command">
+          <option>PING</option><option>GET_STATUS</option>
+          <option>SET_MODE</option><option>SET_BETA</option><option>SET_RATE</option>
+          <option>RESET_FILTER</option><option>CAL_GYRO</option><option>CAL_ACCEL</option>
+          <option>MAG_START</option><option>MAG_STOP</option>
+          <option>SAVE_CONFIG</option><option>LOAD_CONFIG</option>
+          <option>RELAY</option><option>WHEEL</option>
+        </select>
+        <label for="argument">Argumento</label>
+        <input id="argument" maxlength="32" disabled>
+        <button type="submit">Enviar</button>
+      </fieldset>
+    </form>
+    <p id="command-status" role="status"></p>
+  </section>
+  <section id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+    <h2 id="logs-title">Registro serie</h2>
+    <pre id="logs" tabindex="0" aria-label="Registro serie"></pre>
+  </section>
+</main>
+<script type="module" src="./station.js"></script>
+<script type="module" src="./galaxy.js"></script>

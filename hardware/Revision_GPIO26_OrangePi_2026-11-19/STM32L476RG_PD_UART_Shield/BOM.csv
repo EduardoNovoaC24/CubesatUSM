@@ -1,0 +1,7 @@
+﻿References,Quantity,Description,Status
+"J1,J2",2,Morpho 2x19 2.54mm THT,Confirmar apilado
+"J3,J4,J5,J6",4,JST XA B02B-XASK-1 2p 2.50mm,Carcasa XAP-02V-1 y contactos segun cable
+J7,1,"Zocalo hembra 2x13 THT, paso 2.54mm",Acoplamiento directo GPIO26; altura compatible con separadores y pines reales
+"R1,R2,R3,R4",4,Resistencia axial DIN0207 P7.62mm THT,"Valor TBD, determinar y montar antes de usar"
+H5-H8 hardware,4,Separador M3 hembra-hembra,"Altura segun conjunto real, envolvente maxima 7mm"
+OrangePi screws,8,Tornillo M3,"Longitud segun separador y placa, envolvente maxima 7mm"

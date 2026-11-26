@@ -1,0 +1,18 @@
+{
+  "revision": "0.2-P",
+  "copper_layers": 2,
+  "footprints": 11,
+  "pads": 95,
+  "tracks": 55,
+  "plated_vias": 0,
+  "checks": {
+    "X_POS": true,
+    "X_NEG": true,
+    "Y_POS": true,
+    "Y_NEG": true,
+    "UART": true,
+    "no_AFE_sockets": true,
+    "horizontal_vertical_45deg_tolerance_1nm": true,
+    "lower_shield_unchanged": true
+  }
+}

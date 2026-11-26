@@ -1,0 +1,7 @@
+PASS native PCB reload; 70 x 82.5 mm rectangular outline.
+PASS five connectors, 126 plated through pads, six plated vias 1.0/0.4mm.
+PASS no manual wire jumpers.
+PASS 118 physical 0.6mm tracks: {'F.Cu': 75, 'B.Cu': 43}.
+PASS exact pin/net correspondence with KiCad-exported schematic netlist.
+KiCad DRC with schematic parity: zero violations, zero unconnected, zero parity errors.
+ESC identified by user as ZMR Bidirectional 30A; 3.3V input threshold remains unverified.

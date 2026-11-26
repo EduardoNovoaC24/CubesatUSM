@@ -1,0 +1,5 @@
+﻿Net,X_mm,Y_mm,Pad_diameter_mm,Plated_drill_mm
+/PD_ADC_Y_NEG,65.3,85.2,1.0,0.4
+/PD_ADC_Y_NEG,65.3,87.6,1.0,0.4
+/STM32_USART1_TX,41.3,51.2,1.0,0.4
+/STM32_USART1_TX,40.9,47.0,1.0,0.4

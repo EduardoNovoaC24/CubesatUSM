@@ -1,0 +1,71 @@
+(footprint "MountingHole_5mm_NPTH"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(property "Reference" "H1"
+		(at 0 0 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "903e2ea3-aed0-4484-b5d3-9043d8f44714")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Value" "MountingHole_5mm_NPTH"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "1097fa11-1182-4a12-88a8-0ee7a1be2268")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "6a7f0443-f164-4210-a7a2-c15604629de6")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "b84eba27-605f-4f94-92d0-3e8fdcd01565")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr board_only exclude_from_pos_files exclude_from_bom)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_circle
+		(center 0 0)
+		(end 2.8 0)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "b4a4c3c1-b9d8-482c-8319-5551887edc0f")
+	)
+	(pad "" np_thru_hole circle
+		(at 0 0)
+		(size 5 5)
+		(drill 5)
+		(layers "*.Cu")
+		(uuid "0d42e209-bbeb-4673-b40f-7f2083658486")
+	)
+	(embedded_fonts no)
+)

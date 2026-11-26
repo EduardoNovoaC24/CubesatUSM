@@ -1,0 +1,18 @@
+{
+  "same_footprints_and_pad_nets": true,
+  "same_track_count": true,
+  "offset_mm": [
+    10.085,
+    6.695
+  ],
+  "outline_nominal_mm": [
+    90.17,
+    95.89
+  ],
+  "mounting_holes": {
+    "diameter_mm": 5,
+    "type": "NPTH",
+    "positions": "provisional; upper-row Y=5.08 assumed",
+    "same_on_both_boards": true
+  }
+}

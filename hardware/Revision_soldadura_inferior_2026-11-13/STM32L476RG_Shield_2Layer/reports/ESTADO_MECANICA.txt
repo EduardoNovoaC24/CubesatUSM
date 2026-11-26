@@ -1,0 +1,2 @@
+DRC: 15 infracciones, 6 conexiones pendientes y 11 problemas de paridad. El archivo del escritorio contiene seis huellas adicionales sin referencia y con pads sin red en lugares de conexiones entre capas. Se conservaron estos cambios: no se repararon al ampliar el contorno.
+Comprobacion geometrica conservadora de pistas y pads respecto a agujeros: ver HOLE_GEOMETRY_CHECK.json. No comprueba arandelas, soportes, componentes 3D ni compatibilidad fisica con estructura.

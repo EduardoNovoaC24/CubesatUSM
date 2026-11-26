@@ -1,0 +1,8 @@
+﻿Reference,Quantity,Description,Notes
+"J1,J2",2,Female socket 2x19 2.54mm THT,Mount below shield; confirm stack height and pin length
+J3,1,Female socket 1x08 2.54mm THT,GY91 removable
+GY91_HEADER,1,Male pin strip 1x08 2.54mm,Fit to module if not already fitted
+J4,2,Male pin strip 1x20 2.54mm THT,Mate to existing Waveshare female sockets
+J5,1,Header 1x02 2.54mm THT,Signal and GND to ESC only
+GY91_MODULE,1,Purchased GY91 MPU9250 BMP280,Existing module; electrical qualifications still pending
+LORA_MODULE,1,Purchased Waveshare Pico-LoRa-SX1262-868M,3V3 at physical pin36; no battery/VSYS/VBUS

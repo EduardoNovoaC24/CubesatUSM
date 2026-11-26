@@ -1,0 +1,31 @@
+{
+  "identical_tracks_vias_and_nets": true,
+  "unchanged_schematic": true,
+  "existing_components_and_holes_unchanged": true,
+  "new_references": [
+    "H5",
+    "H6",
+    "H7",
+    "H8"
+  ],
+  "total_vias": 2,
+  "total_tracks": 71,
+  "hardware_clearances": [
+    {
+      "hole": "H6",
+      "envelope_7mm_to_copper_gap_conservative_mm": 23.977
+    },
+    {
+      "hole": "H7",
+      "envelope_7mm_to_copper_gap_conservative_mm": 3.306
+    },
+    {
+      "hole": "H5",
+      "envelope_7mm_to_copper_gap_conservative_mm": 23.977
+    },
+    {
+      "hole": "H8",
+      "envelope_7mm_to_copper_gap_conservative_mm": 2.005
+    }
+  ]
+}

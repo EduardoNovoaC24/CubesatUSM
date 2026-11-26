@@ -1,0 +1,3 @@
+(version 1)
+(rule "Prototype electrical clearance" (constraint clearance (min 0.3mm)))
+(rule "Prototype trace width" (constraint track_width (min 0.6mm)))

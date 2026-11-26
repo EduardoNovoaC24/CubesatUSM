@@ -1,0 +1,140 @@
+** Drc report for STM32L476RG_Shield_2Layer.kicad_pcb **
+** Created on 2026-11-13T10:45:18 **
+** Report includes: Errors, Warnings, Exclusions **
+
+** Found 15 DRC violations **
+[shorting_items]: Elementos conectando dos redes (redes  y /MOTOR_PWM)
+    Local override; error
+    @(39.5850 mm, 85.6950 mm): PTH pad 2 [<no net>] of 
+    @(42.1850 mm, 85.6950 mm): Track [/MOTOR_PWM] on B.Cu, length 2.6000 mm
+[shorting_items]: Elementos conectando dos redes (redes  y /MOTOR_PWM)
+    Local override; error
+    @(39.5850 mm, 85.6950 mm): PTH pad 2 [<no net>] of 
+    @(39.5850 mm, 85.6950 mm): Track [/MOTOR_PWM] on F.Cu, length 4.8000 mm
+[shorting_items]: Elementos conectando dos redes (redes  y /MOTOR_PWM)
+    Local override; error
+    @(69.5850 mm, 87.6950 mm): PTH pad 2 [<no net>] of 
+    @(69.5850 mm, 87.6950 mm): Track [/MOTOR_PWM] on B.Cu, length 2.0000 mm
+[shorting_items]: Elementos conectando dos redes (redes /LORA_MOSI y )
+    Local override; error
+    @(55.0850 mm, 83.9950 mm): Track [/LORA_MOSI] on F.Cu, length 5.9397 mm
+    @(55.0850 mm, 84.1950 mm): PTH pad 2 [<no net>] of 
+[shorting_items]: Elementos conectando dos redes (redes  y /MOTOR_PWM)
+    Local override; error
+    @(69.5850 mm, 87.6950 mm): PTH pad 2 [<no net>] of 
+    @(69.5850 mm, 87.6950 mm): Track [/MOTOR_PWM] on F.Cu, length 2.1213 mm
+[shorting_items]: Elementos conectando dos redes (redes /LORA_DIO1 y )
+    Local override; error
+    @(71.7350 mm, 84.0450 mm): Track [/LORA_DIO1] on B.Cu, length 10.8187 mm
+    @(71.5850 mm, 84.1950 mm): PTH pad 2 [<no net>] of 
+[shorting_items]: Elementos conectando dos redes (redes  y /LORA_DIO1)
+    Local override; error
+    @(71.5850 mm, 84.1950 mm): PTH pad 2 [<no net>] of 
+    @(71.7350 mm, 84.0450 mm): Track [/LORA_DIO1] on F.Cu, length 2.4749 mm
+[clearance]: Infracción de margen ( margen 0,3000 mm; real 0,0728 mm)
+    Local override; error
+    @(68.0850 mm, 85.8950 mm): Track [/MOTOR_PWM] on F.Cu, length 6.3640 mm
+    @(71.5850 mm, 84.1950 mm): PTH pad 2 [<no net>] of 
+[shorting_items]: Elementos conectando dos redes (redes /LORA_MISO y )
+    Local override; error
+    @(67.0850 mm, 67.6950 mm): Track [/LORA_MISO] on B.Cu, length 2.5456 mm
+    @(67.0850 mm, 67.6950 mm): PTH pad 2 [<no net>] of 
+[shorting_items]: Elementos conectando dos redes (redes /LORA_MISO y )
+    Local override; error
+    @(67.0850 mm, 67.6950 mm): Track [/LORA_MISO] on F.Cu, length 4.4000 mm
+    @(67.0850 mm, 67.6950 mm): PTH pad 2 [<no net>] of 
+[shorting_items]: Elementos conectando dos redes (redes /LORA_MOSI y )
+    Local override; error
+    @(55.0850 mm, 82.2950 mm): Track [/LORA_MOSI] on B.Cu, length 1.7000 mm
+    @(55.0850 mm, 84.1950 mm): PTH pad 2 [<no net>] of 
+[shorting_items]: Elementos conectando dos redes (redes  y /LORA_NSS)
+    Local override; error
+    @(21.0850 mm, 70.6950 mm): PTH pad 2 [<no net>] of 
+    @(21.0850 mm, 70.5950 mm): Track [/LORA_NSS] on B.Cu, length 0.7000 mm
+[shorting_items]: Elementos conectando dos redes (redes /LORA_NSS y )
+    Local override; error
+    @(21.0850 mm, 71.2950 mm): Track [/LORA_NSS] on B.Cu, length 7.3539 mm
+    @(21.0850 mm, 70.6950 mm): PTH pad 2 [<no net>] of 
+[shorting_items]: Elementos conectando dos redes (redes  y /LORA_NSS)
+    Local override; error
+    @(21.0850 mm, 70.6950 mm): PTH pad 2 [<no net>] of 
+    @(21.0850 mm, 68.8950 mm): Track [/LORA_NSS] on F.Cu, length 1.7000 mm
+[pth_inside_courtyard]: PTH inside courtyard
+    Local override; error
+    @(55.0850 mm, 84.1950 mm): PTH pad 2 [<no net>] of 
+    @(44.0850 mm, 36.1950 mm): Footprint J4
+
+** Found 6 unconnected pads **
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(21.0850 mm, 70.5950 mm): Track [/LORA_NSS] on B.Cu, length 0.7000 mm
+    @(21.0850 mm, 68.8950 mm): Track [/LORA_NSS] on F.Cu, length 1.7000 mm
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(55.0850 mm, 83.9950 mm): Track [/LORA_MOSI] on F.Cu, length 5.9397 mm
+    @(55.0850 mm, 82.2950 mm): Track [/LORA_MOSI] on B.Cu, length 1.7000 mm
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(67.0850 mm, 67.6950 mm): Track [/LORA_MISO] on F.Cu, length 4.4000 mm
+    @(67.0850 mm, 67.6950 mm): Track [/LORA_MISO] on B.Cu, length 2.5456 mm
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(71.7350 mm, 84.0450 mm): Track [/LORA_DIO1] on B.Cu, length 10.8187 mm
+    @(71.7350 mm, 84.0450 mm): Track [/LORA_DIO1] on F.Cu, length 2.4749 mm
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(42.1850 mm, 85.6950 mm): Track [/MOTOR_PWM] on B.Cu, length 2.6000 mm
+    @(39.5850 mm, 85.6950 mm): Track [/MOTOR_PWM] on F.Cu, length 4.8000 mm
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(69.5850 mm, 87.6950 mm): Track [/MOTOR_PWM] on B.Cu, length 2.0000 mm
+    @(69.5850 mm, 87.6950 mm): Track [/MOTOR_PWM] on F.Cu, length 2.1213 mm
+
+** Found 11 Footprint errors **
+[duplicate_footprints]: Duplicate footprints
+    Local override; warning
+    @(69.5850 mm, 87.6950 mm): Footprint <no reference designator>
+    @(67.0850 mm, 67.6950 mm): Footprint <no reference designator>
+[duplicate_footprints]: Duplicate footprints
+    Local override; warning
+    @(21.0850 mm, 70.6950 mm): Footprint <no reference designator>
+    @(67.0850 mm, 67.6950 mm): Footprint <no reference designator>
+[duplicate_footprints]: Duplicate footprints
+    Local override; warning
+    @(71.5850 mm, 84.1950 mm): Footprint <no reference designator>
+    @(67.0850 mm, 67.6950 mm): Footprint <no reference designator>
+[duplicate_footprints]: Duplicate footprints
+    Local override; warning
+    @(55.0850 mm, 84.1950 mm): Footprint <no reference designator>
+    @(67.0850 mm, 67.6950 mm): Footprint <no reference designator>
+[duplicate_footprints]: Duplicate footprints
+    Local override; warning
+    @(39.5850 mm, 85.6950 mm): Footprint <no reference designator>
+    @(67.0850 mm, 67.6950 mm): Footprint <no reference designator>
+[extra_footprint]: Extra footprint
+    Local override; warning
+    @(67.0850 mm, 67.6950 mm): Footprint <no reference designator>
+[extra_footprint]: Extra footprint
+    Local override; warning
+    @(69.5850 mm, 87.6950 mm): Footprint <no reference designator>
+[extra_footprint]: Extra footprint
+    Local override; warning
+    @(21.0850 mm, 70.6950 mm): Footprint <no reference designator>
+[extra_footprint]: Extra footprint
+    Local override; warning
+    @(71.5850 mm, 84.1950 mm): Footprint <no reference designator>
+[extra_footprint]: Extra footprint
+    Local override; warning
+    @(55.0850 mm, 84.1950 mm): Footprint <no reference designator>
+[extra_footprint]: Extra footprint
+    Local override; warning
+    @(39.5850 mm, 85.6950 mm): Footprint <no reference designator>
+
+** Ignored checks **
+    - Footprint has no courtyard defined
+    - Track endpoint not centered on via
+    - Tuning profile track geometries
+    - Footprint doesn't match symbol's footprint filters
+    - Footprint component type doesn't match footprint pads
+
+** End of Report **

@@ -1,0 +1,30 @@
+[
+  {
+    "hole": "H3",
+    "x_mm": 8.255,
+    "y_mm": 90.9,
+    "min_track_pad_gap_conservative_mm": 3.8716,
+    "edge_margin_mm": 2.49
+  },
+  {
+    "hole": "H4",
+    "x_mm": 81.915,
+    "y_mm": 90.85,
+    "min_track_pad_gap_conservative_mm": 3.856,
+    "edge_margin_mm": 2.54
+  },
+  {
+    "hole": "H2",
+    "x_mm": 85.09,
+    "y_mm": 5.08,
+    "min_track_pad_gap_conservative_mm": 30.4083,
+    "edge_margin_mm": 2.58
+  },
+  {
+    "hole": "H1",
+    "x_mm": 5.08,
+    "y_mm": 5.08,
+    "min_track_pad_gap_conservative_mm": 30.4083,
+    "edge_margin_mm": 2.58
+  }
+]

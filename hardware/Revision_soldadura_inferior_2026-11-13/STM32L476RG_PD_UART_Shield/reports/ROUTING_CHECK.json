@@ -1,0 +1,11 @@
+{
+  "same_component_and_hole_positions": true,
+  "schematic_unchanged": true,
+  "no_unreferenced_fake_via_footprints": true,
+  "copper_layers": 2,
+  "track_count": 71,
+  "via_count": 2,
+  "length_F_Cu_mm": 137.46,
+  "length_B_Cu_mm": 420.831,
+  "percent_B_Cu": 75.4
+}

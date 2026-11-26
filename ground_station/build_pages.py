@@ -1,5 +1,6 @@
 """Generate the static site from the original Ground Station panel."""
 
+from hashlib import sha256
 from pathlib import Path
 import shutil
 
@@ -51,6 +52,9 @@ page = page.replace('</nav>', server_tab + '\n</nav>\n' + server_panel, 1)
 page = page.replace('<script src="https://unpkg.com/leaflet', '<script src="./assets/browser_serial.js"></script>\n<script src="https://unpkg.com/leaflet', 1)
 page = page.replace('</body>', '<script defer src="./assets/galaxy.js"></script>\n</body>')
 page = page.replace('Comprueba COM y 115200 baudios.', 'Conecta el Pico LoRa o el puerto ST-LINK.')
+for name in ('cubesat_web.css', 'cubesat_web.js', 'galaxy.css', 'galaxy.js', 'browser_serial.js'):
+    version = sha256((ROOT / 'assets' / name).read_bytes()).hexdigest()[:10]
+    page = page.replace(f'"./assets/{name}"', f'"./assets/{name}?v={version}"')
 PAGES.mkdir(exist_ok=True)
 (PAGES / 'index.html').write_text(page, encoding='utf-8')
 shutil.copytree(ROOT / 'assets', PAGES / 'assets', dirs_exist_ok=True)

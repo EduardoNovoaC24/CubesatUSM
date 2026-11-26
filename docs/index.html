@@ -40,8 +40,8 @@
 :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#120b0c;color:#fae9ec}
 *{box-sizing:border-box}body{margin:0}header{height:71px;display:flex;align-items:center;justify-content:space-between;padding:0 25px;background:#170e0f;border-bottom:1px solid #421b20}header h1{font-size:18px;letter-spacing:.3px;margin:0}header .subtitle{font-size:11px;color:#c88b93;display:block;margin-top:4px}.brand{display:flex;align-items:center;gap:13px}.logo{width:38px;height:38px;display:grid;place-items:center;background:#451219;border-radius:11px;color:#f36a7e;font-size:23px}.status{font-size:12px;color:#e6c1c6;display:flex;gap:7px;align-items:center;text-align:right}.dot{height:8px;width:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e80;flex-shrink:0}.dot.error{background:#f59e0b;box-shadow:0 0 10px #f59e0b80}.dot.demo{background:#fb923c}main{display:grid;grid-template-columns:minmax(0,1fr) 344px;gap:0;height:calc(100vh - 71px)}.mapwrap{position:relative;min-height:340px}#map{height:100%;width:100%;background:#1e1214}.leaflet-container{font-family:inherit}.leaflet-control-attribution{background:#1b1012d9!important;color:#cf969e!important}.leaflet-control-attribution a{color:#f68e9d!important}.topbar{position:absolute;top:18px;left:18px;right:18px;pointer-events:none;z-index:450;display:flex;flex-wrap:wrap;gap:8px}.stat{border:1px solid #4f232a;background:#1a1011eb;border-radius:11px;padding:10px 15px;backdrop-filter:blur(8px);min-width:110px}.stat label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#c9929a}.stat strong{font-size:25px;font-weight:700}.demo-banner{position:absolute;bottom:37px;left:50%;transform:translateX(-50%);z-index:450;background:#9a3412f0;border-radius:7px;padding:10px 14px;font-size:12px;font-weight:700;white-space:nowrap}.sidebar{background:#170e0f;border-left:1px solid #441c21;min-width:0;overflow-y:auto;display:flex;flex-direction:column}.sidehead{padding:20px 20px 15px;border-bottom:1px solid #431c21}.sidehead h2{font-size:15px;margin:0 0 5px}.sidehead p{font-size:12px;color:#c6929a;margin:0}.planes{padding:10px;flex:1}.plane-row{border:1px solid #482026;background:#201315;border-radius:11px;padding:14px;margin:9px 0;cursor:pointer;transition:background .2s,border-color .2s}.plane-row:hover{background:#45151c;border-color:#bb3d4f}.flight{font-size:17px;font-weight:700;letter-spacing:.3px}.icao{color:#cd9aa2;font-size:11px}.plane-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.plane-data{display:grid;grid-template-columns:1fr 1fr;gap:9px}.plane-data small{color:#cd9aa2;font-size:10px}.plane-data b{font-size:12px;display:block;margin-top:3px;font-weight:600}.tag{font-size:10px;border-radius:5px;padding:4px 6px;background:#441219;color:#e87787}.muted{color:#c8929a}.empty{padding:42px 15px;text-align:center;font-size:13px;line-height:1.6;color:#d1a0a7}.foot{border-top:1px solid #431c21;padding:15px 19px;font-size:11px;line-height:1.5;color:#c6929a}.plane-pin{width:31px;height:31px;display:grid;place-items:center;border-radius:50%;background:#340f14d9;border:1px solid #ee5f73aa;box-shadow:0 0 13px #f0425b65}.plane-pin svg{fill:#f47789;filter:drop-shadow(0 0 2px #ca1d36)}.leaflet-popup-content-wrapper{border-radius:10px;background:#201315;color:#fdecef}.leaflet-popup-tip{background:#201315}.leaflet-popup-content{margin:12px 14px;line-height:1.7}.leaflet-popup-content b{color:#f691a0}@media(max-width:900px){main{grid-template-columns:1fr;grid-template-rows:minmax(380px,60vh) auto;height:auto}.sidebar{min-height:260px}.status{max-width:45%;font-size:10px}header{padding:0 15px}}
 </style>
-<link rel="stylesheet" href="./assets/cubesat_web.css">
-<link rel="stylesheet" href="./assets/galaxy.css">
+<link rel="stylesheet" href="./assets/cubesat_web.css?v=6add7ef8ae">
+<link rel="stylesheet" href="./assets/galaxy.css?v=ad30626b68">
 </head>
 <body>
 <div id="intro" class="splash" role="dialog" aria-label="Presentación de la estación CubeSat">
@@ -223,16 +223,26 @@
       <p id="wheel-command-response" aria-live="polite">Sin órdenes de rueda</p>
       <section class="adcs-test" aria-labelledby="adcs-test-1">
         <h3 id="adcs-test-1">Prueba 1 · Frenado bidireccional</h3>
-        <button class="cmd-btn" data-cmd="WHEEL" data-value="DETUMBLE" data-confirm="true" disabled>Medir tiempo de frenado</button>
-        <p class="hint">Se confirma tras 2 s dentro de ±0,5 °/s. El tiempo indica cuándo entró en ese rango.</p>
-        <div class="metric-list">
-          <div><small>Tiempo de prueba</small><b id="adcs-elapsed">—</b></div>
+        <div class="control-row">
+          <button class="cmd-btn" data-cmd="WHEEL" data-value="BENCH_ARM" data-confirm="true" disabled>Iniciar</button>
+          <label for="brake-pwm">PWM inicial del ESC (µs)</label>
+          <input id="brake-pwm" type="number" min="1505" max="1575" step="5" value="1505" required>
+          <button class="cmd-btn" data-cmd="WHEEL" data-arg="brake-pwm" data-prefix="RUNS" data-confirm="true" disabled>Generar 20 pruebas</button>
+          <button class="cmd-btn" data-cmd="WHEEL" data-value="STOP" disabled>Cancelar y desarmar</button>
         </div>
-        <p id="adcs-result" data-test-result="1" aria-live="polite">Sin prueba</p>
+        <p class="hint">Cada repetición aplica el PWM elegido durante 2 s antes de frenar. El giroscopio confirma reposo dentro de ±0,5 °/s durante 2 s. El tiempo se cuenta desde el inicio del frenado hasta la entrada en ese rango.</p>
+        <div class="metric-list">
+          <div><small>Frenado en curso</small><b id="adcs-elapsed">—</b></div>
+          <div><small>Repeticiones válidas</small><b id="brake-count">0 / 20</b></div>
+          <div><small>Mejor tiempo</small><b id="brake-best">—</b></div>
+        </div>
+        <p id="adcs-result" aria-live="polite">Selecciona el eje y calibra el giroscopio antes de iniciar.</p>
+        <svg class="chart-area brake-chart" id="plot-brake" role="img" aria-label="Segundos hasta reposo por repetición"></svg>
       </section>
       <section class="adcs-test" aria-labelledby="adcs-test-2">
         <h3 id="adcs-test-2">Prueba 2 · Seguimiento de luz</h3>
         <div class="control-row">
+          <button class="cmd-btn" data-cmd="WHEEL" data-value="BENCH_ARM" data-confirm="true" disabled>Iniciar</button>
           <label for="reference-deg">Azimut inicial del CubeSat (°)</label>
           <input id="reference-deg" type="number" min="0" max="359" step="1" value="0" required>
           <button class="cmd-btn" data-cmd="WHEEL" data-arg="reference-deg" data-prefix="LIGHT" disabled>Seguir luz en Z</button>
@@ -328,7 +338,7 @@
   </div>
 </section>
 
-<script src="./assets/browser_serial.js"></script>
+<script src="./assets/browser_serial.js?v=e29d45ba83"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 if(!window.L){document.getElementById('planes').textContent='No se pudo cargar Leaflet: revisa la conexión a internet del PC.';} else {
@@ -375,7 +385,7 @@ async function poll(){try{const r=await (window.stationRequest || fetch)('/api/a
 setInterval(poll,1000);poll();
 }
 </script>
-<script defer src="./assets/cubesat_web.js"></script>
-<script defer src="./assets/galaxy.js"></script>
+<script defer src="./assets/cubesat_web.js?v=2495b30cbf"></script>
+<script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

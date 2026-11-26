@@ -186,16 +186,26 @@
       <p id="wheel-command-response" aria-live="polite">Sin órdenes de rueda</p>
       <section class="adcs-test" aria-labelledby="adcs-test-1">
         <h3 id="adcs-test-1">Prueba 1 · Frenado bidireccional</h3>
-        <button class="cmd-btn" data-cmd="WHEEL" data-value="DETUMBLE" data-confirm="true" disabled>Medir tiempo de frenado</button>
-        <p class="hint">Se confirma tras 2 s dentro de ±0,5 °/s. El tiempo indica cuándo entró en ese rango.</p>
-        <div class="metric-list">
-          <div><small>Tiempo de prueba</small><b id="adcs-elapsed">—</b></div>
+        <div class="control-row">
+          <button class="cmd-btn" data-cmd="WHEEL" data-value="BENCH_ARM" data-confirm="true" disabled>Iniciar</button>
+          <label for="brake-pwm">PWM inicial del ESC (µs)</label>
+          <input id="brake-pwm" type="number" min="1505" max="1575" step="5" value="1505" required>
+          <button class="cmd-btn" data-cmd="WHEEL" data-arg="brake-pwm" data-prefix="RUNS" data-confirm="true" disabled>Generar 20 pruebas</button>
+          <button class="cmd-btn" data-cmd="WHEEL" data-value="STOP" disabled>Cancelar y desarmar</button>
         </div>
-        <p id="adcs-result" data-test-result="1" aria-live="polite">Sin prueba</p>
+        <p class="hint">Cada repetición aplica el PWM elegido durante 2 s antes de frenar. El giroscopio confirma reposo dentro de ±0,5 °/s durante 2 s. El tiempo se cuenta desde el inicio del frenado hasta la entrada en ese rango.</p>
+        <div class="metric-list">
+          <div><small>Frenado en curso</small><b id="adcs-elapsed">—</b></div>
+          <div><small>Repeticiones válidas</small><b id="brake-count">0 / 20</b></div>
+          <div><small>Mejor tiempo</small><b id="brake-best">—</b></div>
+        </div>
+        <p id="adcs-result" aria-live="polite">Selecciona el eje y calibra el giroscopio antes de iniciar.</p>
+        <svg class="chart-area brake-chart" id="plot-brake" role="img" aria-label="Segundos hasta reposo por repetición"></svg>
       </section>
       <section class="adcs-test" aria-labelledby="adcs-test-2">
         <h3 id="adcs-test-2">Prueba 2 · Seguimiento de luz</h3>
         <div class="control-row">
+          <button class="cmd-btn" data-cmd="WHEEL" data-value="BENCH_ARM" data-confirm="true" disabled>Iniciar</button>
           <label for="reference-deg">Azimut inicial del CubeSat (°)</label>
           <input id="reference-deg" type="number" min="0" max="359" step="1" value="0" required>
           <button class="cmd-btn" data-cmd="WHEEL" data-arg="reference-deg" data-prefix="LIGHT" disabled>Seguir luz en Z</button>

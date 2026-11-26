@@ -223,5 +223,18 @@ class DecoderTests(unittest.TestCase):
                 server.shutdown()
                 thread.join(2)
 
+    def test_brake_batch_reports_all_twenty_measurements(self):
+        pico = PicoBridge(None)
+        for pulse in (1505, 1575):
+            self.assertEqual(validate_command('WHEEL', [f'RUNS:{pulse}']), f'WHEEL,RUNS:{pulse}')
+        for pulse in (1500, 1506, 1580):
+            with self.assertRaises(ValueError):
+                validate_command('WHEEL', [f'RUNS:{pulse}'])
+        values = ','.join(str(50 + i) for i in range(20))
+        pico._handle_payload('ACK,25,OK,BRAKE,1575,4,0,0,' + values)
+        batch = pico.snapshot()['brake_batch']
+        self.assertEqual(batch['seconds'], [(50 + i) / 100 for i in range(20)])
+        self.assertFalse(batch['armed'])
+
 
 if __name__=='__main__': unittest.main()

@@ -103,7 +103,7 @@ class SharedControl:
     def submit(self, pico, client, operator, name, args):
         independent = (name in ('PING', 'GET_STATUS') or
                        (name in ('WHEEL', 'RELAY') and args == ['STATUS']) or
-                       (name == 'WHEEL' and args == ['STOP']))
+                       (name == 'WHEEL' and args in (['STOP'], ['RESULTS'])))
         with self.lock:
             if not independent and self.owner != client and time.monotonic() < self.expires:
                 raise PermissionError(f'{self.operator} tiene el turno de control')

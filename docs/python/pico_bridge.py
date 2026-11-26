@@ -104,7 +104,11 @@ def validate_command(name: str, args: list) -> str:
         if len(args) != 1:
             raise ValueError('Indica la orden de rueda')
         action = args[0]
-        if re.fullmatch(r'TURN:-?[0-9]{1,3}', action):
+        if re.fullmatch(r'RUNS:[0-9]{4}', action):
+            pulse = int(action.split(':')[1])
+            if not 1505 <= pulse <= 1575 or pulse % 5:
+                raise ValueError('PWM entre 1505 y 1575 µs, en pasos de 5')
+        elif re.fullmatch(r'TURN:-?[0-9]{1,3}', action):
             if not 1 <= abs(int(action.split(':')[1])) <= 180:
                 raise ValueError('Indica un giro entre −180° y +180°, distinto de cero')
         elif re.fullmatch(r'LIGHT(?:INV)?:[0-9]{1,3}', action):
@@ -112,7 +116,7 @@ def validate_command(name: str, args: list) -> str:
                 raise ValueError('El azimut inicial debe estar entre 0° y 359°')
         elif re.fullmatch(r'AXIS_[XYZ][+-]', action):
             pass
-        elif action not in ('ARM','STOP','STATUS','DETUMBLE','PROFILE_AIR','PROFILE_BIDIR','ENABLE'):
+        elif action not in ('ARM','STOP','STATUS','DETUMBLE','PROFILE_AIR','PROFILE_BIDIR','ENABLE','BENCH_ARM','RESULTS'):
             if not re.fullmatch(r'[+-]?[0-9]{1,2}', action) or not 1 <= abs(int(action)) <= 15:
                 raise ValueError('El nivel de prueba debe estar entre −15 y +15, distinto de cero')
             args = [str(int(action))]
@@ -150,6 +154,7 @@ class PicoBridge:
         self.history = deque(maxlen=120)
         self.next_id = 1
         self.commands = deque(maxlen=35)
+        self.brake_batch = None
         self.relay_command = None
         self.relay_requested_at = 0.0
         self.pending_packet = None
@@ -175,7 +180,7 @@ class PicoBridge:
                         relay=self._relay_status(),
                         wheel=dict(self.wheel, age=round(time.monotonic() - self.wheel_at, 1)) if self.wheel else None,
                         adcs_history=list(self.adcs_history),
-                        packets=self.packet_count, samples=self.sample_count,
+                        brake_batch=self.brake_batch, packets=self.packet_count, samples=self.sample_count,
                         rf=dict(self.rf), payload=self.last_payload[:200],
                         history=list(self.history), commands=list(self.commands),
                         logs=list(self.logs))
@@ -225,8 +230,17 @@ class PicoBridge:
             self.rf.update(rf)
         m = re.match(r'^ACK,(\d+),(OK|ERR)(?:,(.*))?$', payload)
         if m:
-            self._update_command(int(m[1]),m[2],m[3] or '')
-            self.log(f'[STM32] ACK #{m[1]}: {m[2]} {m[3] or ""}')
+            detail = m[3] or ''
+            self._update_command(int(m[1]),m[2],detail)
+            brake = re.fullmatch(r'BRAKE,(\d{1,4}),([0-5]),([0-6]),([01])((?:,\d{1,4}){0,20})', detail)
+            if m[2] == 'OK' and brake:
+                pulse, phase, error, armed = map(int, brake.groups()[:4])
+                centiseconds = [int(t) for t in brake[5].split(',') if t]
+                if (pulse == 0 or (1505 <= pulse <= 1575 and not pulse % 5)) and all(t <= 6000 for t in centiseconds):
+                    self.brake_batch = dict(pulse=pulse, phase=phase, error=error, armed=bool(armed),
+                                            seconds=[t / 100 for t in centiseconds])
+            else:
+                self.log(f'[STM32] ACK #{m[1]}: {m[2]} {detail}')
         e = re.match(r'^EVT,(\d+),([A-Z_]+),(DONE|ERR)(?:,(.*))?$', payload)
         if e:
             self._update_command(int(e[1]),e[3],e[4] or '')

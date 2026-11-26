@@ -273,5 +273,16 @@ class DecoderTests(unittest.TestCase):
         self.assertEqual((wheel['spin_seconds'], wheel['spin_pwm'], wheel['detumble']), (5, 1510, 1))
         self.assertEqual([wheel[f'light_{i}'] for i in range(1, 5)], [675, 650, 320, 120])
 
+    def test_three_panels_are_independent_of_ina219_telemetry(self):
+        pico = PicoBridge(None)
+        pico._handle_payload('Q,10000,0,0,0|EPSI,1,1,12000,250000,0|PV3,7,2,7860,19300,6230')
+        state = pico.snapshot()
+        self.assertEqual(state['solar']['current_ma'], 250)
+        self.assertEqual([ch['voltage'] for ch in state['panels']['channels']], [7.86, 19.3, 6.23])
+        self.assertTrue(state['panels']['channels'][1]['saturated'])
+        self.assertIsNone(state['panel_history'][-1]['panel2'])
+        pico._handle_payload('Q,10000,0,0,0|PV3,5,0,0,8600,6000')
+        self.assertEqual([ch['voltage'] for ch in pico.snapshot()['panels']['channels']], [0, None, 6])
+
 
 if __name__=='__main__': unittest.main()

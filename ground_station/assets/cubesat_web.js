@@ -163,38 +163,30 @@
     document.getElementById('mission-rotor').dataset.measured=
       String(adcsFresh&&Number.isFinite(wheel.rpm)&&wheel.rpm>0);
   }
-  const panelVoltage=document.getElementById('test-panel-voltage');
-  const panelStatus=document.getElementById('test-panel-status');
-  const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
-  let panelValue=0, panelTarget=0, panelFrame=0;
-  function renderTestPanel(data){
-    const sample=data.test_panel;
-    const fresh=data.connected&&sample?.age<=30&&Number.isFinite(sample.voltage);
-    const status=fresh?(sample.saturated?'ADC saturado':'Lectura del STM32'):'Sin lectura reciente';
-    if(panelStatus.textContent!==status) panelStatus.textContent=status;
-    const target=fresh&&!sample.saturated?sample.voltage:0;
-    if(target===panelTarget) return;
-    cancelAnimationFrame(panelFrame);
-    panelTarget=target;
-    const startValue=panelValue;
-    const startTime=performance.now();
-    function update(now){
-      const progress=reducedMotion.matches||!fresh||sample.saturated
-        ? 1 : Math.min(1,Math.max(0,(now-startTime)/650));
-      panelValue=startValue+(target-startValue)*progress;
-      panelVoltage.textContent=panelValue.toFixed(2).padStart(5,'0');
-      if(progress<1) panelFrame=requestAnimationFrame(update);
-    }
-    update(startTime);
+  function renderPanels(data){
+    const sample=data.panels;
+    const legacy=!sample&&data.connected&&data.test_panel?.age<=30;
+    const channels=data.connected&&sample?.age<=45?sample.channels:legacy?[data.test_panel]:[];
+    document.querySelectorAll('[data-panel-voltage]').forEach(el=>{
+      const channel=channels[Number(el.dataset.panelVoltage)];
+      el.textContent=channel?.voltage!=null?
+        (channel.saturated?'≥ ':'')+fmt(channel.voltage,' V',2):'—';
+    });
+    document.getElementById('panels-status').textContent=channels.some(channel=>channel.saturated)?
+      'Una entrada ADC está saturada. Revisa el divisor.':
+      legacy?'Trama de un canal recibida · PC4':
+      channels.some(channel=>channel.voltage!=null)?'Última captura hace '+Math.round(sample.age)+' s':
+      'Sin voltajes recientes del STM32';
+    drawChart('plot-solar',data.panel_history||[],['panel1','panel2','panel3'],
+      ['#f6b55b','#ee8394','#81caff']);
   }
   function renderSolar(data){
-    renderTestPanel(data);
+    renderPanels(data);
     const reading=data.solar;
     const fresh=data.connected&&reading&&reading.age<=30;
     const ina=reading?.source==='ina219';
     document.querySelectorAll('[data-eps-analog-only]').forEach(el=>el.hidden=ina);
     document.getElementById('eps-solar-label').textContent=ina?'Línea solar · INA219':'Pareja 1 · PC4';
-    document.getElementById('eps-solar-series').textContent=ina?'Línea solar':'Pareja 1';
     document.getElementById('eps-battery-label').textContent=ina?'Voltaje de batería':'Batería · PA1';
     document.getElementById('eps-current-card').hidden=!ina;
     document.getElementById('eps-current').textContent=fresh&&ina?fmt(reading.current_ma,' mA',2):'—';
@@ -217,8 +209,6 @@
       battery?.voltage>16?'Batería por encima de 16 V':
       channels.some(channel=>channel.voltage!=null)?(ina?'Datos recibidos desde la ESP32':'Voltajes estimados a partir del divisor'):
       legacy.hidden?'Lecturas ADC no disponibles':'Esperando la trama EPS de cuatro canales';
-    drawChart('plot-solar',data.solar_history||[],['pair1','pair2','pair3','battery'],
-      ['#f6b55b','#ee8394','#81caff','#8fe4aa']);
   }
   function renderPico(data){
     picoState=data;

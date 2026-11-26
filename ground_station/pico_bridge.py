@@ -139,6 +139,8 @@ class PicoBridge:
         self.solar_at = None
         self.solar_history = deque(maxlen=120)
         self.test_panel = None
+        self.panels = None
+        self.panel_history = deque(maxlen=120)
         self.port, self.baud = port, baud
         self.lock = threading.Lock()
         self.queue = queue.Queue(maxsize=32)
@@ -184,6 +186,9 @@ class PicoBridge:
                         solar_history=list(self.solar_history),
                         test_panel=dict(self.test_panel, age=round(time.monotonic() - self.test_panel['at'], 1))
                         if self.test_panel else None,
+                        panels=dict(self.panels, age=round(time.monotonic() - self.panels['at'], 1))
+                        if self.panels else None,
+                        panel_history=list(self.panel_history),
                         relay=self._relay_status(),
                         wheel=dict(self.wheel, age=round(time.monotonic() - self.wheel_at, 1)) if self.wheel else None,
                         adcs_history=list(self.adcs_history),
@@ -254,6 +259,19 @@ class PicoBridge:
             self.log(f'[STM32] EVENT #{e[1]} {e[2]}: {e[3]} {e[4] or ""}'.rstrip())
         records = payload.split('|')
         for record in records:
+            panels = re.fullmatch(r'PV3,([0-7]),([0-7]),(\d{1,5}),(\d{1,5}),(\d{1,5})', record)
+            if panels:
+                valid, saturated, *mv = map(int, panels.groups())
+                if not saturated & ~valid:
+                    channels = [dict(voltage=value / 1000 if valid & (1 << index) else None,
+                                     saturated=bool(saturated & (1 << index)))
+                                for index, value in enumerate(mv)]
+                    self.panels = dict(channels=channels, at=time.monotonic())
+                    self.panel_history.append(dict(t=time.time(), **{
+                        f'panel{index + 1}': channel['voltage'] if not channel['saturated'] else None
+                        for index, channel in enumerate(channels)
+                    }))
+                break
             panel = re.fullmatch(r'PTEST,([0-2]),(\d{1,5})', record)
             if panel:
                 status, mv = map(int, panel.groups())
@@ -456,6 +474,7 @@ class PicoBridge:
                     self.wheel = None
                     self.solar = None
                     self.test_panel = None
+                    self.panels = None
                     self.status = 'Pico desconectado · reintentando'
                     self.last_error = str(e)[:150]
                     self.log('[USB] '+self.last_error)

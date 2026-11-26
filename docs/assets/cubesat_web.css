@@ -150,7 +150,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   gap:clamp(4px,1.7vw,13px);min-height:300px;padding:24px clamp(10px,4vw,38px);
   border:1px solid var(--line);border-radius:12px;overflow:hidden;
   background:radial-gradient(ellipse,#4a241d70,transparent 72%),#120b10;perspective:650px}
-.solar-array{display:grid;grid-template-rows:repeat(3,1fr);gap:5px;padding:5px;
+.solar-array{display:grid;padding:5px;
   min-height:260px;background:#af6a20;border:2px solid #e6b56a;border-radius:5px;
   box-shadow:inset 0 0 12px #6e3c12,0 9px 24px #0008}
 .solar-left{transform:rotateY(17deg);transform-origin:right}

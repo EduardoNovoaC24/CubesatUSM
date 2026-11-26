@@ -82,6 +82,7 @@ void Error_Handler(void);
 #error "PC5 cannot be used as ADC and USART3 RX at the same time"
 #endif
 #define EPS_ADC_GPIOC_Pins (GPIO_PIN_4 | GPIO_PIN_5)
+#define PANEL_ADC_GPIOC_Pins (GPIO_PIN_4 | GPIO_PIN_2 | GPIO_PIN_3)
 #define EPS_ADC_GPIOA_Pins (GPIO_PIN_0 | GPIO_PIN_1)
 #ifndef SOLAR_R_TOP_OHM
 #define SOLAR_R_TOP_OHM 330000U

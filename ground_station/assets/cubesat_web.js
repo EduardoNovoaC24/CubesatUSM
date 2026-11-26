@@ -117,7 +117,8 @@
       wheel.axis>=3?'Aplica el eje y la polaridad del montaje.':
       !wheel.gyro_calibrated?'Espera la calibración del giroscopio con el CubeSat quieto.':
       wheel.state!==0?'La rueda debe estar desarmada.':
-      !Number.isFinite(wheel.body_rpm)||Math.abs(wheel.body_rpm)>.08?'Espera a que el CubeSat quede quieto.':'';
+      !Number.isFinite(wheel.body_rpm)?'Esperando una lectura válida del giroscopio.':
+      Math.abs(wheel.body_rpm)>.33?'Reduce el giro del CubeSat a 2 °/s o menos.':'';
     document.getElementById('spin-start').disabled=waiting||Boolean(block);
     const brake=document.getElementById('spin-brake');
     const connected=picoState.connected&&picoState.capable;

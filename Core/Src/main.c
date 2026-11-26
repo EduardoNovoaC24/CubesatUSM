@@ -2404,6 +2404,7 @@ void Task_SensorFusion(void *argument)
     P2P_ControlInit(&p2p_control, p2p_emit, P2P_FlashSave, P2P_FlashLoad);
     uint32_t applied_revision = UINT32_MAX;
     bool imu_ok = (MPU9250_Init(&hi2c1) == HAL_OK);
+    P2P_ControlEnableAutoCalibration(&p2p_control);
     uint8_t who_am_i = 0U;
     uint8_t mag_who_am_i = 0U;
     (void)MPU9250_ReadWhoAmI(&who_am_i);

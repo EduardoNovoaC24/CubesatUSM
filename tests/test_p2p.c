@@ -16,6 +16,13 @@ static void command(P2P_Control *c, const char *s, uint32_t now) {
   assert(!P2P_ParseCommand(s, strlen(s), &cmd));
   P2P_ControlCommand(c, &cmd, now);
 }
+static bool load_calibration(P2P_Config *config) {
+  P2P_ConfigDefaults(config);
+  config->gyro_calibrated = 1;
+  config->mag_calibrated = 1;
+  config->gyro_bias[0] = 0.13f;
+  return true;
+}
 int main(void) {
   P2P_Command cmd;
   assert(!P2P_ParseCommand("CMD,41,SET_BETA,0.075", 21, &cmd));
@@ -141,5 +148,29 @@ int main(void) {
   assert(P2P_ConfigValid(&c.config));
   c.config.gain = NAN;
   assert(!P2P_ConfigValid(&c.config));
+
+  P2P_Control automatic;
+  P2P_ControlInit(&automatic, emit, NULL, NULL);
+  P2P_ControlEnableAutoCalibration(&automatic);
+  P2P_Sample boot = {.imu_ok = true, .accel = {0, 0, 1}, .gyro = {0.12f, 0, 0}};
+  for (unsigned i = 0; i < 1300; ++i) {
+    boot.gyro[0] = i % 2 ? 0.5f : -0.5f;
+    P2P_ControlSample(&automatic, &boot, i * 20U);
+  }
+  assert(automatic.calibration == 1 && !automatic.config.gyro_calibrated);
+  command(&automatic, "CMD,55,SET_RATE,3", 26000);
+  assert(automatic.config.rate_hz == 3);
+  for (unsigned i = 0; i < 400; ++i) {
+    boot.gyro[0] = 0.12f;
+    P2P_ControlSample(&automatic, &boot, 26020U + i * 20U);
+  }
+  assert(automatic.config.gyro_calibrated && automatic.calibration == 0 &&
+         fabsf(automatic.config.gyro_bias[0] - 0.12f) < 0.001f &&
+         automatic.config.mode == 6);
+  P2P_ControlInit(&automatic, emit, NULL, load_calibration);
+  P2P_ControlEnableAutoCalibration(&automatic);
+  P2P_ControlSample(&automatic, &boot, 20);
+  assert(automatic.calibration == 0 && automatic.config.mode == 9 &&
+         fabsf(automatic.config.gyro_bias[0] - 0.13f) < 0.001f);
   puts("P2P parser/cache/budget/calibration checks passed (host simulation)");
 }

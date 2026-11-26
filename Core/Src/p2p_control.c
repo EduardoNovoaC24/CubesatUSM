@@ -34,6 +34,20 @@ void P2P_ControlInit(P2P_Control *c, P2P_Emit emit, P2P_Save save,
   c->save = save;
   c->load = load;
 }
+void P2P_ControlEnableAutoCalibration(P2P_Control *c) {
+  c->auto_calibration = true;
+  P2P_Config saved;
+  if (c->load && c->load(&saved) && P2P_ConfigValid(&saved)) {
+    c->config = saved;
+    if (c->config.mag_calibrated)
+      c->config.mode = 9;
+    c->reset_filter = true;
+    c->revision++;
+  }
+}
+static bool auto_gyro_active(const P2P_Control *c) {
+  return c->calibration == 1 && c->calibration_id == 0;
+}
 static void ack(P2P_Control *c, uint16_t id, bool ok, const char *detail) {
   char line[221];
   snprintf(line, sizeof(line), "ACK,%u,%s,%s", id, ok ? "OK" : "ERR", detail);
@@ -43,10 +57,12 @@ static void event(P2P_Control *c, bool ok, const char *detail) {
   const char *name = c->calibration == 1   ? "CAL_GYRO"
                      : c->calibration == 2 ? "CAL_ACCEL"
                                            : "MAG_START";
-  char line[221];
-  snprintf(line, sizeof(line), "EVT,%u,%s,%s,%s", c->calibration_id, name,
-           ok ? "DONE" : "ERR", detail);
-  c->emit(line);
+  if (c->calibration_id != 0) {
+    char line[221];
+    snprintf(line, sizeof(line), "EVT,%u,%s,%s,%s", c->calibration_id, name,
+             ok ? "DONE" : "ERR", detail);
+    c->emit(line);
+  }
   c->calibration = 0;
 }
 static void reset_cal_samples(P2P_Control *c) {
@@ -84,7 +100,7 @@ void P2P_ControlCommand(P2P_Control *c, const P2P_Command *cmd, uint32_t now) {
     ack(c, cmd->id, true, detail);
     return;
   }
-  if (c->calibration && cmd->name != P2P_MAG_STOP) {
+  if (c->calibration && !auto_gyro_active(c) && cmd->name != P2P_MAG_STOP) {
     ack(c, cmd->id, false, "BUSY");
     return;
   }
@@ -202,6 +218,8 @@ void P2P_ControlCommand(P2P_Control *c, const P2P_Command *cmd, uint32_t now) {
       c->config.mag_scale[a] = mean_radius / radius[a];
     }
     c->config.mag_calibrated = 1;
+    if (c->auto_calibration)
+      c->config.mode = 9;
     c->revision++;
     ack(c, stop_id, true, "APPLIED_DIAGONAL_SOFTIRON");
     event(c, true, "DIAGONAL_SOFTIRON");
@@ -223,6 +241,8 @@ void P2P_ControlCommand(P2P_Control *c, const P2P_Command *cmd, uint32_t now) {
       break;
     }
     c->config = next;
+    if (auto_gyro_active(c))
+      c->calibration = 0;
     c->reset_filter = true;
     c->revision++;
     ack(c, cmd->id, true, "APPLIED");
@@ -241,10 +261,17 @@ void P2P_ControlSample(P2P_Control *c, const P2P_Sample *s, uint32_t now) {
   }
   if (now - c->last_mag_ms >= 250)
     c->mag_ok = false;
+  if (!c->calibration && c->auto_calibration && !c->config.gyro_calibrated && s->imu_ok) {
+    c->calibration = 1;
+    c->calibration_id = 0;
+    c->started_ms = now;
+    c->gyro_rejection = NULL;
+    reset_cal_samples(c);
+  }
   if (!c->calibration)
     return;
   const bool gyro = c->calibration == 1;
-  if (now - c->started_ms >= (gyro ? 20000U : 120001U)) {
+  if (!auto_gyro_active(c) && now - c->started_ms >= (gyro ? 20000U : 120001U)) {
     event(c, false, gyro && c->gyro_rejection ? c->gyro_rejection : "CAL_INSUFFICIENT");
     return;
   }

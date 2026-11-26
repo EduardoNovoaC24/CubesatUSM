@@ -1312,6 +1312,7 @@ static void telemetry_publish(FusionQuaternion q, bool valid, const MPU9250_Data
 
 #define FULL_TELEMETRY_PERIOD_MS 10000U
 #define WHEEL_READY_WINDOW_MS 20000U
+#define WHEEL_TIMED_START_MAX_DPS 2.0f
 _Static_assert(SOLAR_R_TOP_OHM > 0U && SOLAR_R_BOTTOM_OHM > 0U && SOLAR_ADC_REF_MV > 0U,
                "The solar divider and ADC reference must be nonzero");
 
@@ -1902,9 +1903,10 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             const unsigned level = request / 100U;
             if (!seconds || seconds > P2P_WHEEL_TIMED_MAX_S || !level || level > P2P_WHEEL_MAX_LEVEL) {
                 error = "BAD_ARGS";
-            } else if (wheel->state != WHEEL_IDLE || !link_ok || !rate_ok ||
-                       imu_stale || fabsf(rate) > 0.5f) {
+            } else if (wheel->state != WHEEL_IDLE || !link_ok || !rate_ok || imu_stale) {
                 error = "CHECK_IDLE_LINK_AXIS_GYRO";
+            } else if (fabsf(rate) > WHEEL_TIMED_START_MAX_DPS) {
+                error = "BODY_RATE_TOO_HIGH";
             } else {
                 *enabled = false;
                 batch.armed = false;

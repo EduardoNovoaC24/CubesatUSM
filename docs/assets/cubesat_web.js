@@ -114,18 +114,17 @@
     const waiting=spinCommandId!==undefined&&(!pending||['EN COLA','PICO QUEUED','PICO SENT'].includes(pending.state));
     if(spinCommandId!==undefined&&!waiting)spinCommandId=undefined;
     const block=!adcsFresh?'Esperando telemetría reciente de la rueda.':
-      wheel.axis>=3?'Aplica el eje y la polaridad del montaje.':
       !wheel.gyro_calibrated?'Espera la calibración del giroscopio con el CubeSat quieto.':
       wheel.state!==0?'La rueda debe estar desarmada.':
-      !Number.isFinite(wheel.body_rpm)?'Esperando una lectura válida del giroscopio.':
-      Math.abs(wheel.body_rpm)>.33?'Reduce el giro del CubeSat a 2 °/s o menos.':'';
-    document.getElementById('spin-start').disabled=waiting||Boolean(block);
+      !Number.isFinite(wheel.body_rpm)?'Esperando una lectura válida del giroscopio.':'';
+    document.getElementById('spin-start').disabled=waiting||!picoState.connected||!picoState.capable;
     const brake=document.getElementById('spin-brake');
     const connected=picoState.connected&&picoState.capable;
     brake.disabled=!connected;
     document.getElementById('spin-disarm').disabled=!connected;
     document.getElementById('spin-status').textContent=waiting?'Esperando el ACK del STM32.':
       motion&&wheel.state===1?'Armando el ESC.':
+      braking&&wheel.spin_result===1?'Manteniendo el reposo. El control sigue activo.':
       braking?'Frenando con el giroscopio.':
       motion?'Giro temporizado en curso.':
       timed&&wheel.spin_result?resultLabels[wheel.spin_result]||block:
@@ -133,7 +132,7 @@
     document.getElementById('spin-elapsed').textContent=timed?fmt(wheel.elapsed_s,' s',1):'—';
     document.getElementById('spin-clock-label').textContent=timed&&wheel.detumble?'Tiempo de frenado':'Tiempo de giro';
     document.getElementById('spin-duration').textContent=timed?fmt(wheel.spin_seconds,' s',0):'—';
-    if(motion)void keepTimedLink();
+    if(motion||braking)void keepTimedLink();
   }
   function renderTurn(wheel, fresh, commands){
     const command=commands?.find(cmd=>cmd.id===turnCommandId);

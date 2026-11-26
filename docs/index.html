@@ -233,15 +233,7 @@
     </div>
     <div class="web-card">
       <h3>Giro temporizado</h3>
-      <div class="control-row">
-        <label for="wheel-axis">Eje y polaridad</label>
-        <select id="wheel-axis">
-          <option value="Z+">Z+</option><option value="Z-">Z−</option>
-          <option value="X+">X+</option><option value="X-">X−</option>
-          <option value="Y+">Y+</option><option value="Y-">Y−</option>
-        </select>
-        <button class="cmd-btn" data-cmd="WHEEL" data-arg="wheel-axis" data-prefix="AXIS_" disabled>Aplicar eje</button>
-      </div>
+      <p class="hint">Eje y polaridad fijos en <strong>Z+</strong>.</p>
       <div class="control-row">
         <label for="spin-pwm">PWM del ESC (µs)</label>
         <input id="spin-pwm" type="number" min="1505" max="1575" step="5" value="1505" required>
@@ -258,7 +250,7 @@
         <div><small id="spin-clock-label">Tiempo de giro</small><b id="spin-elapsed">—</b></div>
         <div><small>Duración ordenada</small><b id="spin-duration">—</b></div>
       </div>
-      <p class="hint">El tiempo empieza al alcanzar el PWM indicado. Al pulsar Frenar o cumplirse el plazo, el STM32 reduce el giro con el giroscopio. Frenar conserva su funci&oacute;n. Desarmar ESC cancela la maniobra.</p>
+      <p class="hint">El tiempo empieza al alcanzar el PWM indicado. Al pulsar Frenar o cumplirse el plazo, el STM32 reduce el giro con el giroscopio. El frenado sigue corrigiendo las perturbaciones hasta desarmar el ESC.</p>
       <h3>Prueba de giro de 180°</h3>
       <div class="command-grid">
         <button class="cmd-btn" id="turn-arm" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Armar para giro</button>
@@ -388,7 +380,7 @@ function render(data){
 async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());}catch(e){document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}finally{setTimeout(poll,1000);}}
 poll();
 </script>
-<script defer src="./assets/cubesat_web.js?v=14b87c16c1"></script>
+<script defer src="./assets/cubesat_web.js?v=43bb0086f5"></script>
 <script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

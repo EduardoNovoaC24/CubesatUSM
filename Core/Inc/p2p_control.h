@@ -18,7 +18,7 @@ typedef bool (*P2P_Load)(P2P_Config *config);
 typedef struct {
   P2P_Config config;
   uint32_t revision;
-  bool reset_filter, imu_ok, mag_ok;
+  bool reset_filter, imu_ok, mag_ok, auto_calibration;
   uint32_t last_mag_ms;
   int calibration; /* 0=idle, 1=gyro, 2=level accel, 3=mag */
   uint16_t calibration_id;
@@ -34,6 +34,7 @@ void P2P_ConfigDefaults(P2P_Config *config);
 bool P2P_ConfigValid(const P2P_Config *config);
 void P2P_ControlInit(P2P_Control *control, P2P_Emit emit, P2P_Save save,
                      P2P_Load load);
+void P2P_ControlEnableAutoCalibration(P2P_Control *control);
 void P2P_ControlCommand(P2P_Control *control, const P2P_Command *command,
                         uint32_t now);
 void P2P_ControlSample(P2P_Control *control, const P2P_Sample *sample,

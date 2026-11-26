@@ -109,7 +109,7 @@
     if(!wheelFresh)return 'Esperando telemetría reciente de la rueda por LoRa.';
     if(!adcsFresh)return 'Llegan datos de la rueda, pero falta su estado ADCS.';
     if(wheel.axis>=3)return 'Pulsa Aplicar eje con el eje y la polaridad del montaje.';
-    if(!wheel.gyro_calibrated)return 'Calibra el giroscopio con el CubeSat quieto o carga la calibración guardada.';
+    if(!wheel.gyro_calibrated)return 'Giroscopio sin calibrar. Deja quieto el CubeSat para que el STM32 calcule el bias.';
     if(wheel.state===4)return 'La rueda está deteniéndose. Espera a que indique Desarmada.';
     if(wheel.state===1)return 'El ESC se está armando. Espera a que indique Lista.';
     if(wheel.state===3)return 'Hay una prueba en curso. Para cambiar de prueba, pulsa Detener y espera a que indique Desarmada.';
@@ -334,9 +334,6 @@
       (wheel.gyro_calibrated?'Giro calibrado':'Giro sin calibrar')+' · '+
       (wheel.mag_valid?(wheel.mag_calibrated?'Mag calibrado':'Mag sin calibrar'):'Mag sin dato válido')+
       ' · '+(wheel.fusion_9dof?'Fusión 9DOF':'Fusión 6DOF'):'Esperando datos del GY‑91';
-    document.querySelectorAll('[data-adcs-cal]').forEach(el=>{
-      el.disabled=!(adcsFresh&&wheel.state===0&&(el.dataset.cmd!=='SET_MODE'||(wheel.mag_calibrated&&wheel.mag_valid)));
-    });
     document.querySelector('[data-prefix="AXIS_"]').disabled=!wheelIdle;
     const maneuverReady=adcsFresh&&wheel.profile===2&&wheel.state===2&&wheel.axis<3&&
       Number.isFinite(wheel.body_rpm);
@@ -371,9 +368,6 @@
     const wheelCmd=(data.commands||[]).filter(cmd=>cmd.name==='WHEEL'&&!cmd.detail.startsWith('BRAKE,')).at(-1);
     if(wheelCmd)document.getElementById('wheel-command-response').textContent=
       '#'+wheelCmd.id+' '+wheelCmd.state+' · '+wheelCmd.detail;
-    const calCmd=(data.commands||[]).filter(cmd=>['CAL_GYRO','MAG_START','MAG_STOP','SET_MODE'].includes(cmd.name)).at(-1);
-    if(calCmd)document.getElementById('adcs-cal-response').textContent=
-      '#'+calCmd.id+' '+calCmd.state+' · '+calCmd.detail;
     const relayLabel={ON:'Encendida',OFF:'Apagada',PENDING:'Esperando respuesta'};
     document.getElementById('relay-status').textContent=
       'Salida del relé: '+(relayLabel[data.relay]||'Sin confirmación');
@@ -401,7 +395,7 @@
       document.getElementById('adcs-result').textContent='Sin conexión con el servidor';
       document.querySelectorAll('[data-bench-start-status]').forEach(el=>el.textContent='Sin conexión con el panel. Comprueba el enlace al Pico.');
       renderMissionScene(null,false);
-      document.querySelectorAll('[data-cmd="WHEEL"],[data-adcs-cal]').forEach(btn=>btn.disabled=true);
+      document.querySelectorAll('[data-cmd="WHEEL"]').forEach(btn=>btn.disabled=true);
     }
   }
   document.querySelectorAll('[data-cmd]').forEach(btn=>btn.addEventListener('click',async()=>{
@@ -409,8 +403,7 @@
     if(btn.dataset.confirm==='true'&&!window.confirm('¿Enviar '+btn.dataset.cmd+' a la STM32 vía LoRa? La aplicación no confirmará su aplicación hasta recibir un ACK.'))return;
     let args=btn.dataset.value?[btn.dataset.value]:
       btn.dataset.arg?[document.getElementById(btn.dataset.arg).value]:[];
-    const msg=document.getElementById(btn.dataset.cmd==='WHEEL'?'wheel-command-response':
-      btn.hasAttribute('data-adcs-cal')?'adcs-cal-response':'command-response');
+    const msg=document.getElementById(btn.dataset.cmd==='WHEEL'?'wheel-command-response':'command-response');
     if(btn.dataset.arg&&!document.getElementById(btn.dataset.arg).reportValidity())return;
     if(btn.dataset.prefix){
       const prefix=btn.dataset.prefix==='LIGHT'&&document.getElementById('light-invert').checked?

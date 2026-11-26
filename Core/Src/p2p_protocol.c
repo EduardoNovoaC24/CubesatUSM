@@ -65,7 +65,23 @@ const char *P2P_ParseCommand(const char *line, size_t n, P2P_Command *out) {
       out->value = WHEEL_CMD_BENCH_ARM;
     else if (!strcmp(arg, "RESULTS"))
       out->value = WHEEL_CMD_RESULTS;
-    else if (!strncmp(arg, "RUNS:", 5) && strlen(arg + 5) == 4 &&
+    else if (!strcmp(arg, "BRAKE"))
+      out->value = WHEEL_CMD_TIMED_BRAKE;
+    else if (!strncmp(arg, "RUN:", 4U)) {
+      const char *pulse_text = arg + 4;
+      if (strspn(pulse_text, "0123456789") != 4U || pulse_text[4] != ':')
+        return "BAD_ARGS";
+      const char *seconds_text = pulse_text + 5;
+      const size_t length = strspn(seconds_text, "0123456789");
+      if (length == 0 || length > 2 || seconds_text[length] != '\0')
+        return "BAD_ARGS";
+      const unsigned pulse = (unsigned)strtoul(pulse_text, NULL, 10);
+      const unsigned seconds = (unsigned)strtoul(seconds_text, NULL, 10);
+      if (pulse <= 1500U || pulse > 1500U + 5U * P2P_WHEEL_MAX_LEVEL || pulse % 5U ||
+          seconds == 0 || seconds > P2P_WHEEL_TIMED_MAX_S)
+        return "BAD_ARGS";
+      out->value = (float)(WHEEL_TIMED_BASE + ((pulse - 1500U) / 5U) * 100U + seconds);
+    } else if (!strncmp(arg, "RUNS:", 5) && strlen(arg + 5) == 4 &&
              strspn(arg + 5, "0123456789") == 4) {
       const unsigned pulse = (unsigned)strtoul(arg + 5, NULL, 10);
       if (pulse <= 1500U || pulse > 1500U + 5U * P2P_WHEEL_MAX_LEVEL || pulse % 5U)

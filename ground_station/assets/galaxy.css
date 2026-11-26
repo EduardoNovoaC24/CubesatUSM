@@ -50,7 +50,6 @@
 #stars { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:10000; }
 .model-scene { position:relative; }
 .model-particles { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
-.assembling :is(.sat-face, .mission-tripod, .mission-rig) { opacity:0; }
-@media (prefers-reduced-motion: no-preference) {
-  :is(.model-scene, .mission-scene) :is(.sat-face, .mission-tripod, .mission-rig) { transition:opacity .25s; }
-}
+.assembly-figure { position:absolute; inset:0; }
+.model-scene > .assembly-figure { display:grid; place-items:center; perspective:inherit; }
+.assembly-mask { position:absolute; width:0; height:0; pointer-events:none; }

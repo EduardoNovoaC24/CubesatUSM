@@ -79,6 +79,7 @@
 </section>
 <section class="tab-panel cube-panel" id="tab-control" aria-label="Calibración y control">
   <div class="panel-head"><div><h2>Calibración y control remoto</h2><p>Comandos USB → Pico → LoRa P2P → STM32. La transmisión no implica que se haya aplicado la orden.</p></div><div class="panel-status" id="pico-status-2">Pico sin configurar</div></div>
+  <div class="control-row"><label for="model-long-axis">Eje del GY‑91 que sigue el lado largo del CubeSat</label><select id="model-long-axis"><option>X</option><option>Y</option><option selected>Z</option></select></div>
   <div class="dashboard-grid">
     <div class="web-card"><h3>Vista de orientación · Sensores</h3><div class="model-scene"><div class="sat-root" id="sat-model-2"><div class="sat-cube"><div class="sat-face sat-front"></div><div class="sat-face sat-back"></div><div class="sat-face sat-left"></div><div class="sat-face sat-right"></div><div class="sat-face sat-top"></div><div class="sat-face sat-bottom"></div></div></div></div><div class="metric-list" id="imu-metrics-2" style="margin-top:15px"></div><p>Magnetómetro · <b data-mag-status>Estado sin datos</b></p><p class="hint" data-sensor-age>Esperando telemetría de sensores</p><p>Brújula: <b data-imu="heading">—</b> · Norma: <b data-imu="norm">—</b></p></div>
     <div class="web-card"><h3>Control de la STM32</h3><p class="warning" id="command-hint">No disponible: conecta el Pico y espera PICO_READY,P2P_CMD_V1.</p>

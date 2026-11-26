@@ -65,16 +65,33 @@
       : 'Plazo vencido. Espera a que la rueda vuelva a Desarmada.';
   }
   const fmt=(v,unit='',places=0)=>typeof v==='number'&&Number.isFinite(v)?v.toFixed(places)+unit:'—';
-  // CSS matrix3d for quaternion rotation. Missing data stays in neutral pose.
+  const modelAxis=document.getElementById('model-long-axis');
+  try{
+    const savedAxis=localStorage.getItem('cubesat-model-axis');
+    if(['X','Y','Z'].includes(savedAxis))modelAxis.value=savedAxis;
+  }catch{ /* Optional display preference. */ }
+  modelAxis.addEventListener('change',()=>{
+    try{localStorage.setItem('cubesat-model-axis',modelAxis.value);}catch{}
+    modelQuaternion(picoState.latest);
+  });
+  // Fusion rotates body coordinates into NWU (+Z up). CSS places up at −Y.
+  // The mesh's long dimension is local Y, independent of how the GY‑91 is mounted.
   function modelQuaternion(r){
     if(!r||![r.q0,r.q1,r.q2,r.q3].every(v=>typeof v==='number')) return;
     let [w,x,y,z]=[r.q0,r.q1,r.q2,r.q3];
     const norm=Math.hypot(w,x,y,z);if(norm<.001)return;
     [w,x,y,z]=[w/norm,x/norm,y/norm,z/norm];
-    const m=[1-2*(y*y+z*z),2*(x*y+z*w),2*(x*z-y*w),0,
-             2*(x*y-z*w),1-2*(x*x+z*z),2*(y*z+x*w),0,
-             2*(x*z+y*w),2*(y*z-x*w),1-2*(x*x+y*y),0,
-             0,0,0,1];
+    const columns=[
+      [1-2*(y*y+z*z),2*(x*y+z*w),2*(x*z-y*w)],
+      [2*(x*y-z*w),1-2*(x*x+z*z),2*(y*z+x*w)],
+      [2*(x*z+y*w),2*(y*z-x*w),1-2*(x*x+y*y)],
+    ];
+    const meshAxes={ X:[[1,1],[0,-1],[2,1]],Y:[[0,1],[1,-1],[2,-1]],Z:[[0,1],[2,-1],[1,1]] };
+    const m=meshAxes[modelAxis.value].flatMap(([axis,sign])=>{
+      const [north,west,up]=columns[axis];
+      return [sign*north,-sign*up,sign*west,0];
+    });
+    m.push(0,0,0,1);
     const matrix='matrix3d('+m.join(',')+')';
     ['sat-model-1','sat-model-2'].forEach(id=>document.getElementById(id).style.transform=matrix);
   }
@@ -272,11 +289,13 @@
     document.querySelectorAll('[data-pico]').forEach(el=>el.textContent=mp[el.dataset.pico]??'—');
     const latest=data.latest;
     let magStatus='Estado sin datos';
-    if(latest?.mag_detected===false) magStatus='No detectado';
-    if(latest?.mag_detected===true){
-      if(!latest.mag_valid) magStatus='Detectado · sin muestra válida';
-      else magStatus=latest.mag_calibrated?'Con datos · calibrado':'Con datos · sin calibrar';
-    }
+    const wheelMag=data.wheel?.age<=25&&typeof data.wheel.mag_valid==='boolean'?data.wheel:null;
+    const magValid=wheelMag?.mag_valid??latest?.mag_valid;
+    const magCalibrated=wheelMag?.mag_calibrated??latest?.mag_calibrated;
+    if(magValid)magStatus=magCalibrated?'Con datos · calibrado':'Con datos · sin calibrar';
+    else if(latest?.mag_detected===false)magStatus='No detectado';
+    else if(latest?.mag_detected===true)magStatus='Detectado · sin muestra válida';
+    else if(wheelMag)magStatus='Sin muestra válida · detección pendiente';
     document.querySelectorAll('[data-mag-status]').forEach(el=>el.textContent=magStatus);
     document.querySelectorAll('[data-sensor-age]').forEach(el=>{
       el.textContent=latest?.sensor_age!=null?'Última lectura de sensores hace '+Math.round(latest.sensor_age)+' s':'Esperando telemetría de sensores';

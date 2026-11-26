@@ -120,9 +120,12 @@ void P2P_ControlCommand(P2P_Control *c, const P2P_Command *cmd, uint32_t now) {
     ack(c, cmd->id, true, "APPLIED_REQUEST_DUTY_LIMITED");
     break;
   case P2P_SET_MODE:
-    if (cmd->value == 9 && (!c->mag_ok || now - c->last_mag_ms >= 250 ||
-                            !c->config.mag_calibrated)) {
-      ack(c, cmd->id, false, "MAG_UNAVAILABLE");
+    if (cmd->value == 9 && (!c->mag_ok || now - c->last_mag_ms >= 250)) {
+      ack(c, cmd->id, false, "MAG_NO_VALID_SAMPLE");
+      break;
+    }
+    if (cmd->value == 9 && !c->config.mag_calibrated) {
+      ack(c, cmd->id, false, "MAG_UNCALIBRATED");
       break;
     }
     c->config.mode = (uint32_t)cmd->value;

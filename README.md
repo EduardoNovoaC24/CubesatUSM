@@ -21,3 +21,15 @@ py ground_station/radar_stm32.py --port COM15 --pico-port COM8
 ```
 
 Abre <http://localhost:8765>. Puedes omitir `--port` si solo usarás el Pico. Cierra el panel local antes de abrir ese mismo puerto desde Chrome.
+
+## Compartir una radio en la misma red
+
+En el PC que tiene el Pico por USB, cierra cualquier navegador o monitor serie que esté usando ese puerto. Busca la dirección IPv4 del adaptador de red con `ipconfig` y ejecuta el servidor con el COM y la IP reales.
+
+```powershell
+py ground_station/radar_stm32.py --pico-port COM8 --lan-ip 192.168.1.23
+```
+
+Ambos abren la URL que imprime la terminal, por ejemplo `http://192.168.1.23:8765`. Si Windows pregunta por el firewall, autoriza Python en redes privadas. La telemetría está disponible en la red local. Para enviar comandos, cada operador escribe su nombre y la clave temporal que aparece en la terminal del anfitrión.
+
+Prueben primero con `PING` y comprueben que ambos ven el mismo `ACK`. El primer comando que modifica el equipo reserva el turno durante 60 segundos de inactividad. `MAG_START` lo reserva durante 125 segundos para cubrir la calibración. El operador puede soltarlo desde el panel. Consultas de estado y `WHEEL STOP` no necesitan el turno, pero sí la clave de mandos.

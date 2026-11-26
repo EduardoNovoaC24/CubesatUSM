@@ -295,7 +295,6 @@
     document.getElementById('wheel-rpm').textContent=wheelFresh&&wheel.rpm!==null?wheel.rpm:'—';
     document.getElementById('wheel-pulse').textContent=wheelFresh?(wheel.pulse?wheel.pulse+' µs':'Sin pulsos'):'—';
     document.getElementById('wheel-level').textContent=wheelFresh?wheel.level:'—';
-    const wheelIdle=wheelFresh&&wheel.state===0;
     const adcsFresh=wheelFresh&&wheel.detumble!=null;
     renderMissionScene(wheel,adcsFresh);
     document.getElementById('adcs-axis').textContent=adcsFresh&&wheel.axis<3?
@@ -304,7 +303,6 @@
     document.getElementById('adcs-sensors').textContent=adcsFresh?
       (wheel.gyro_calibrated?'Giro calibrado':'Giro sin calibrar')+' · '+
       (wheel.fusion_9dof?'Fusión 9DOF':'Fusión 6DOF'):'Esperando datos del GY‑91';
-    document.querySelector('[data-prefix="AXIS_"]').disabled=!wheelIdle;
     renderTimedSpin(wheel,adcsFresh,data.commands);
     renderTurn(wheel,adcsFresh,data.commands);
     document.getElementById('adcs-export').disabled=!data.adcs_history?.length;

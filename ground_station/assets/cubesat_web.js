@@ -21,6 +21,28 @@
     }
   });
   let picoState={capable:false,connected:false};
+  const lanKey=document.getElementById('lan-key');
+  const lanOperator=document.getElementById('lan-operator');
+  const lanStatus=document.getElementById('lan-status');
+  const lanFeedback=document.getElementById('lan-feedback');
+  const lanClient=lanKey?Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join(''):'';
+  function commandRequest(payload){
+    const headers={'Content-Type':'application/json'};
+    if(lanKey){
+      headers['X-Station-Key']=lanKey.value.trim();
+      headers['X-Station-Client']=lanClient;
+      payload.operator=lanOperator.value.trim();
+    }
+    return {method:'POST',headers,body:JSON.stringify(payload)};
+  }
+  document.getElementById('lan-release')?.addEventListener('click',async()=>{
+    try{
+      const response=await fetch('/api/control/release',commandRequest({}));
+      if(!response.ok)throw Error((await response.json()).error);
+      await pollPico();
+      lanFeedback.textContent='';
+    }catch(error){lanFeedback.textContent=error.message;}
+  });
   let wheelTelemetryAt=0;
   const wheelSetpoint=document.querySelector('[data-cmd="WHEEL"][data-arg]');
   const wheelCountdown=document.getElementById('wheel-ready-countdown');
@@ -160,6 +182,12 @@
   }
   function renderPico(data){
     picoState=data;
+    if(lanStatus && data.shared_control){
+      const control=data.shared_control;
+      lanStatus.textContent=control.operator?
+        'Turno: '+control.operator+' · '+control.seconds+' s':
+        'Control disponible · telemetría compartida';
+    }
     renderSolar(data);
     const label=data.connected?(data.capable?'Pico conectado · comandos disponibles':'Pico conectado · esperando PICO_READY'):
       (data.error?'Pico desconectado':'Pico no conectado');
@@ -265,7 +293,7 @@
     if(data.commands?.length){
       const cmd=data.commands.at(-1);
       document.getElementById('command-response').textContent=
-        '#'+cmd.id+' '+cmd.name+': '+cmd.state+' — '+cmd.detail;
+        '#'+cmd.id+' '+cmd.name+(cmd.operator?' · '+cmd.operator:'')+': '+cmd.state+' — '+cmd.detail;
     }
   }
   async function pollPico(){
@@ -296,11 +324,15 @@
       args=[prefix+(prefix==='AXIS_'?'':':')+args[0]];
     }
     msg.textContent='Enviando solicitud...';
+    if(lanFeedback)lanFeedback.textContent='';
     try{
-      const r=await (window.stationRequest || fetch)('/api/pico/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:btn.dataset.cmd,args})});
+      const r=await (window.stationRequest || fetch)('/api/pico/command',commandRequest({command:btn.dataset.cmd,args}));
       const x=await r.json();if(!r.ok)throw Error(x.error||'No se pudo encolar');
       msg.textContent='#'+x.id+' en cola; esperando respuesta de la STM32 (NO aplicado todavía)';
-    }catch(err){msg.textContent='Error: '+err.message;}
+    }catch(err){
+      msg.textContent='Error: '+err.message;
+      if(lanFeedback)lanFeedback.textContent=err.message;
+    }
   }));
   document.getElementById('light-invert').addEventListener('change',()=>{
     const wheel=picoState.wheel;

@@ -3,6 +3,7 @@ import io
 import json
 import threading
 import unittest
+from unittest.mock import patch
 from http.server import ThreadingHTTPServer
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
@@ -124,6 +125,7 @@ class DecoderTests(unittest.TestCase):
 
     def test_pico_commands_locked_until_handshake(self):
         b=PicoBridge(None)
+        b.next_id = 1
         with self.assertRaises(RuntimeError):b.send_command('PING',[])
         b._parse_line('PICO_READY,P2P_CMD_V1')
         with self.assertRaises(RuntimeError):b.send_command('PING',[])
@@ -136,6 +138,7 @@ class DecoderTests(unittest.TestCase):
 
     def test_relay_status_requires_stm32_ack(self):
         b = PicoBridge(None)
+        b.next_id = 1
         b.connected = True
         b._parse_line('PICO_READY,P2P_CMD_V1')
         with self.assertRaises(ValueError):
@@ -176,6 +179,7 @@ class DecoderTests(unittest.TestCase):
 
     def test_shared_radio_uses_one_queue_and_tracks_operators(self):
         pico = PicoBridge(None)
+        pico.next_id = 1
         pico.connected = True
         pico._parse_line('PICO_READY,P2P_CMD_V1')
         shared = SharedControl('127.0.0.1')
@@ -235,6 +239,14 @@ class DecoderTests(unittest.TestCase):
         batch = pico.snapshot()['brake_batch']
         self.assertEqual(batch['seconds'], [(50 + i) / 100 for i in range(20)])
         self.assertFalse(batch['armed'])
+
+    def test_command_ids_start_at_a_random_nonzero_value_and_wrap(self):
+        with patch('pico_bridge.secrets.randbelow', side_effect=[1234, 65534]):
+            old, new = PicoBridge(None), PicoBridge(None)
+        self.assertEqual(old.next_id, 1235)
+        new.connected = new.capable = True
+        self.assertEqual(new.send_command('PING', [])['id'], 65535)
+        self.assertEqual(new.send_command('PING', [])['id'], 1)
 
 
 if __name__=='__main__': unittest.main()

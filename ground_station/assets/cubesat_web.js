@@ -123,9 +123,9 @@
     brake.disabled=!connected;
     document.getElementById('spin-disarm').disabled=!connected;
     document.getElementById('spin-status').textContent=waiting?'Esperando el ACK del STM32.':
-      motion&&wheel.state===1?'Armando el ESC.':
+      motion&&wheel.state===1?(wheel.spin_seconds==null?'Armando el ESC para frenar el giro manual.':'Armando el ESC.'):
       braking&&wheel.spin_result===1?'Manteniendo el reposo. El control sigue activo.':
-      braking?'Frenando con el giroscopio.':
+      braking?'Frenando en Z+. El reposo se confirma tras 10 s cerca de cero.':
       motion?'Giro temporizado en curso.':
       timed&&wheel.spin_result?resultLabels[wheel.spin_result]||block:
       block||'Listo para iniciar el giro.';

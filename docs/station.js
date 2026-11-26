@@ -9,6 +9,13 @@ const fields = byId('fields');
 const commandStatus = byId('command-status');
 const encoder = new TextEncoder();
 const argumentCommands = new Set(['SET_MODE', 'SET_BETA', 'SET_RATE', 'RELAY', 'WHEEL']);
+const argumentHints = {
+  SET_MODE: '6DOF o 9DOF',
+  SET_BETA: '0.001 a 2.0',
+  SET_RATE: '1 a 10 Hz',
+  RELAY: 'ON, OFF, STATUS',
+  WHEEL: 'STATUS, STOP, etc.',
+};
 const logs = [];
 let session;
 let nextId = 1 + crypto.getRandomValues(new Uint16Array(1))[0] % 65535;
@@ -29,7 +36,7 @@ function receive(link, line) {
   }
   const payload = /^\[RX\] Payload: "(.*)"$/.exec(line)?.[1]
     ?? /^\[RX\] (.*?) \| len=/.exec(line)?.[1] ?? line;
-  if (/^(TEL,|Q[,;])/.test(payload)) byId('telemetry').textContent = payload;
+  if (/^(TEL,|Q[,;=]|QERR,|BARO,|T=)/.test(payload)) byId('telemetry').textContent = payload;
   if (/^(ACK|EVT|PICO_TX|PICO_ACK_TIMEOUT),/.test(payload)) commandStatus.textContent = payload;
 }
 
@@ -119,20 +126,32 @@ disconnect.addEventListener('click', () => {
   if (session) void close(session, 'Pico desconectado.');
 });
 
-command.addEventListener('change', () => {
+function updateArgument() {
   argument.disabled = !argumentCommands.has(command.value);
   argument.value = '';
-});
+  argument.placeholder = argumentHints[command.value] ?? '';
+}
+
+function validArgument(name, value) {
+  if (name === 'SET_MODE') return /^(6|9)DOF$/.test(value);
+  if (name === 'SET_BETA') return /^\d+(\.\d+)?$/.test(value) && Number(value) >= .001 && Number(value) <= 2;
+  if (name === 'SET_RATE') return /^(?:[1-9]|10)$/.test(value);
+  if (name === 'RELAY') return /^(ON|OFF|STATUS)$/.test(value);
+  return /^[A-Z0-9_:+-]{1,32}$/.test(value);
+}
+
+command.addEventListener('change', updateArgument);
+updateArgument();
 
 byId('controls').addEventListener('submit', async (event) => {
   event.preventDefault();
   const link = session;
   if (!link?.ready || link.closing) return;
   const name = command.value;
-  const value = argument.value.trim();
+  const value = argument.value.trim().toUpperCase();
   const hasArgument = argumentCommands.has(name);
-  if (hasArgument && !/^[A-Za-z0-9._+-]{1,32}$/.test(value)) {
-    commandStatus.textContent = 'Introduce un argumento válido.';
+  if (hasArgument && !validArgument(name, value)) {
+    commandStatus.textContent = 'Argumento esperado: ' + argumentHints[name];
     return;
   }
   const id = nextId;

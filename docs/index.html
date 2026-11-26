@@ -221,6 +221,16 @@
         <div><small>Duración ordenada</small><b id="spin-duration">—</b></div>
       </div>
       <p class="hint">El tiempo empieza al alcanzar el PWM indicado. Al pulsar Frenar o cumplirse el plazo, el STM32 reduce el giro con el giroscopio. Durante el frenado puedes desarmar el ESC.</p>
+      <h3>Prueba de giro de 180°</h3>
+      <div class="command-grid">
+        <button class="cmd-btn" id="turn-arm" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Armar para giro</button>
+        <button class="cmd-btn" id="turn-start" data-cmd="WHEEL" data-value="TURN:180" disabled>Girar 180°</button>
+      </div>
+      <div class="metric-list">
+        <div><small>Giro estimado</small><b id="turn-angle">—</b></div>
+        <div><small>Error al objetivo</small><b id="turn-error">—</b></div>
+      </div>
+      <p class="hint" id="turn-status" role="status">Esperando telemetría de la rueda.</p>
       <p id="wheel-command-response" aria-live="polite">Sin órdenes de rueda</p>
       <p id="adcs-sensors">Esperando datos del GY‑91</p>
     </div>
@@ -330,7 +340,7 @@ async function poll(){try{const r=await (window.stationRequest || fetch)('/api/a
 setInterval(poll,1000);poll();
 }
 </script>
-<script defer src="./assets/cubesat_web.js?v=677304803a"></script>
+<script defer src="./assets/cubesat_web.js?v=bf1d506673"></script>
 <script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

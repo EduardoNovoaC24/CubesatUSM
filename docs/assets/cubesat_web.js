@@ -210,10 +210,17 @@
     const active=tracking&&wheel.detumble===1;
     const hasPose=fresh&&[2,3].includes(wheel.maneuver)&&Number.isFinite(wheel.rotation_deg);
     const rotation=hasPose?wheel.rotation_deg:0;
+    const saved=tracking&&typeof wheel.light_hold_stable==='boolean'&&Number.isFinite(wheel.target_deg)?wheel.target_deg:null;
+    const holdError=saved!==null&&hasPose?((saved-rotation+180)%360+360)%360-180:null;
     const scene=document.getElementById('light-compass');
     scene.style.setProperty('--cube-heading',rotation+'deg');
     if(directional)scene.style.setProperty('--light-heading',(rotation+bodyAngle)+'deg');
     document.getElementById('light-compass-ray').hidden=!directional;
+    const holdMarker=document.getElementById('light-hold-marker');
+    holdMarker.hidden=saved===null;
+    if(saved!==null)scene.style.setProperty('--hold-heading',saved+'deg');
+    document.getElementById('light-saved-angle').textContent=fmt(saved,'°',1);
+    document.getElementById('light-hold-error').textContent=fmt(holdError,'°',1);
     document.getElementById('light-cube-angle').textContent=hasPose?fmt(rotation,'°',1):'Referencia: cara 1';
     document.getElementById('light-angle-error').textContent=directional?fmt(bodyAngle,'°',1):'—';
     const leaders=directional?readings.flatMap((value,i)=>value===maximum?[i+1]:[]):[];
@@ -229,7 +236,10 @@
       6:'Límite de la rueda alcanzado.',7:'Giro fuera del rango de control.',8:'Se perdió el enlace.',
       9:'La luz dejó de tener una dirección clara.'};
     document.getElementById('light-track-status').textContent=active?
-      (directional&&Math.abs(bodyAngle)<=3?'Luz cerca de la cara 1. Seguimiento activo.':'La STM32 está siguiendo la luz.'):
+      (saved!==null?(wheel.light_hold_stable?'Reposo confirmado. Manteniendo el ángulo guardado.':
+        'Luz perdida. Frenando y corrigiendo hacia el ángulo guardado.'):
+      !directional?'Confirmando pérdida de luz.':
+      directional&&Math.abs(bodyAngle)<=3?'Luz cerca de la cara 1. Seguimiento activo.':'La STM32 está siguiendo la luz.'):
       tracking&&results[wheel.detumble]?results[wheel.detumble]:
       !valid?'Esperando muestras recientes de los cuatro fotodiodos.':
       !directional?'Iluminación pareja o señal débil. Apunta la lámpara desde un costado.':
@@ -436,7 +446,7 @@
     if(!rows.length)return;
     const keys=['t','axis','inverted','body_rpm','elapsed_s','detumble','pulse','level','rpm','leds',
       'gyro_calibrated','mag_calibrated','mag_valid','fusion_9dof','light_1','light_2','light_3','light_4',
-      'maneuver','rotation_deg','target_deg','reference_deg','light_azimuth_deg','brake_initial_rpm','brake_to_5rpm_s','spin_seconds','spin_pwm','spin_result'];
+      'maneuver','rotation_deg','target_deg','reference_deg','light_azimuth_deg','light_hold_stable','brake_initial_rpm','brake_to_5rpm_s','spin_seconds','spin_pwm','spin_result'];
     const csv=[keys.join(','),...rows.map(row=>keys.map(key=>row[key]??'').join(','))].join('\n');
     const uri=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
     const link=document.createElement('a');link.href=uri;link.download='adcs-telemetria.csv';link.click();

@@ -369,6 +369,9 @@ class PicoBridge:
                                         key: None if angle == -32768 else angle / 10
                                         for key, angle in zip(keys, angles)
                                     })
+                                    if mode == 3 and angles[1] != -32768 and angles[3] in (-32767, -32766):
+                                        self.wheel.update(light_hold_stable=angles[3] == -32766,
+                                                          light_azimuth_deg=None)
                             self.adcs_history.append(dict(self.wheel, t=time.time()))
                     self.wheel_at = time.monotonic()
         baro = next((r for r in records if r.startswith('BARO,')), None)

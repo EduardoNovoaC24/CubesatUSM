@@ -14,6 +14,10 @@ La web estática usa Web Serial y ejecuta en el navegador los mismos analizadore
 
 ### Azimut y el lote de frenado
 
+En **Prueba 1 · Detumbling**, arma el ESC con el montaje quieto. Cuando el cuerpo esté girando, pulsa **Frenar giro del CubeSat**. La prueba registra la velocidad inicial del cuerpo y el tiempo hasta bajar de 5 rpm por primera vez, además del tiempo de estabilización. Los valores reglamentarios de 60 rpm iniciales y 5 rpm están sujetos a confirmación. La rueda tiene sus propias RPM, que se muestran por separado.
+
+En **Prueba 2 · Azimut por luz**, introduce el azimut inicial de la cara 1. Con los cuatro sensores válidos y el montaje en reposo puedes **Medir sin mover la rueda**, o puedes armar y usar **Seguir luz en Z**. La vista 3D utiliza el giro integrado que informa el STM32 durante el seguimiento. Arrastrar la vista cambia la cámara. Si introduces una referencia independiente del jurado, el panel calcula la menor diferencia angular y muestra el umbral de error correspondiente.
+
 Actualiza el firmware del STM32 y usa un Pico compatible con `BENCH_ARM`, `RUNS` y `RESULTS`. En **Azimut**, aplica el eje y la polaridad de la rueda. El STM32 recupera el sesgo del giroscopio que esté guardado en FLASH o lo calcula automáticamente al detectar una ventana de reposo. Si hay calibración magnética válida, el filtro incorpora el magnetómetro automáticamente cuando recibe una muestra válida. Los ajustes manuales siguen disponibles en **Calibración avanzada y memoria**.
 
 **Iniciar** selecciona el perfil bidireccional y arma el ESC directamente. Conserva el armado mientras recibe tráfico LoRa y medidas válidas del giroscopio. La prueba manual de 30 segundos sigue disponible en sus controles.

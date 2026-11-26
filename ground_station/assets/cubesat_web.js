@@ -305,6 +305,15 @@
       (wheel.fusion_9dof?'Fusión 9DOF':'Fusión 6DOF'):'Esperando datos del GY‑91';
     renderTimedSpin(wheel,adcsFresh,data.commands);
     renderTurn(wheel,adcsFresh,data.commands);
+    const brakeHistory=(data.adcs_history||[]).map(sample=>({
+      t:sample.t,
+      rate:Number.isFinite(sample.body_rpm)?6*sample.body_rpm:null,
+      pulse:sample.pulse||null,
+      zero:0,
+      neutral:1500
+    }));
+    drawChart('plot-brake-rate',brakeHistory,['rate','zero'],['#68d8e9','#aa8faa']);
+    drawChart('plot-brake-pwm',brakeHistory,['pulse','neutral'],['#ffc86f','#aa8faa']);
     document.getElementById('adcs-export').disabled=!data.adcs_history?.length;
     const wheelCmd=(data.commands||[]).filter(cmd=>cmd.name==='WHEEL'&&!cmd.detail.startsWith('BRAKE,')).at(-1);
     if(wheelCmd)document.getElementById('wheel-command-response').textContent=

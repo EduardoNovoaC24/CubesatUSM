@@ -825,7 +825,7 @@ static void MX_GPIO_Init(void)
 #elif EPS_UART_TELEMETRY
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Pin = PANEL_ADC_GPIOC_Pins;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 #endif
 
@@ -1332,24 +1332,11 @@ static size_t telemetry_solar(uint8_t *payload, size_t capacity, const Telemetry
         if (capacity < prefix) { return 0U; }
         memcpy(payload, no_attitude, prefix);
     }
+    taskENTER_CRITICAL();
 #if EPS_UART_TELEMETRY
-    taskENTER_CRITICAL();
     EpsUartSample sample = eps_uart_sample;
-    const uint16_t test_raw = eps_adc[0];
-    const bool test_valid = (eps_valid_mask & 1U) && HAL_GetTick() - eps_adc_sample_ms <= 250U;
-    taskEXIT_CRITICAL();
-    if (HAL_GetTick() - sample.received_ms > 3500U) { sample = (EpsUartSample){0}; }
-    const uint64_t test_denominator = (uint64_t)P2P_LIGHT_MAX * SOLAR_R_BOTTOM_OHM;
-    const uint64_t test_numerator = (uint64_t)test_raw * SOLAR_ADC_REF_MV *
-                                    ((uint64_t)SOLAR_R_TOP_OHM + SOLAR_R_BOTTOM_OHM);
-    const unsigned long test_mv = (unsigned long)((test_numerator + test_denominator / 2U) / test_denominator);
-    const int length = snprintf((char *)payload + prefix, capacity - prefix,
-                                "|EPSI,%u,%u,%u,%ld,%u|PTEST,%u,%lu", sample.sequence, sample.flags,
-                                sample.solar_mv, sample.solar_ua, sample.battery_mv,
-                                test_valid ? (test_raw >= 4090U ? 2U : 1U) : 0U, test_mv);
-#else
+#endif
     uint16_t raw[EPS_ADC_CHANNELS];
-    taskENTER_CRITICAL();
     memcpy(raw, eps_adc, sizeof(raw));
     const unsigned valid = HAL_GetTick() - eps_adc_sample_ms <= 250U ? eps_valid_mask : 0U;
     taskEXIT_CRITICAL();
@@ -1363,6 +1350,13 @@ static size_t telemetry_solar(uint8_t *payload, size_t capacity, const Telemetry
         mv[i] = (unsigned long)((numerator + denominator / 2U) / denominator);
         if (raw[i] >= 4090U) { saturated |= 1U << i; }
     }
+#if EPS_UART_TELEMETRY
+    if (HAL_GetTick() - sample.received_ms > 3500U) { sample = (EpsUartSample){0}; }
+    const int length = snprintf((char *)payload + prefix, capacity - prefix,
+                                "|EPSI,%u,%u,%u,%ld,%u|PV3,%u,%u,%lu,%lu,%lu",
+                                sample.sequence, sample.flags, sample.solar_mv, sample.solar_ua,
+                                sample.battery_mv, valid, saturated, mv[0], mv[1], mv[2]);
+#else
     const int length = snprintf((char *)payload + prefix, capacity - prefix,
                                 "|EPS,%u,%u,%lu,%lu,%lu,%lu", valid, saturated,
                                 mv[0], mv[1], mv[2], mv[3]);
@@ -2186,7 +2180,8 @@ static bool eps_adc_init(void)
     }
     HAL_Delay(1U);
     /* HCLK/4, single-ended 12-bit samples, 640.5 cycles per channel. */
-    ADC1->SMPR1 = SOLAR_TELEMETRY ? ADC_SMPR1_SMP5_Msk | ADC_SMPR1_SMP6_Msk : 0U;
+    ADC1->SMPR1 = SOLAR_TELEMETRY ? ADC_SMPR1_SMP5_Msk | ADC_SMPR1_SMP6_Msk :
+                  ADC_SMPR1_SMP3_Msk | ADC_SMPR1_SMP4_Msk;
     if (SOLAR_TELEMETRY) { ADC1->SMPR2 = ADC_SMPR2_SMP13_Msk | ADC_SMPR2_SMP14_Msk; }
     else if (EPS_UART_TELEMETRY) { ADC1->SMPR2 = ADC_SMPR2_SMP13_Msk; }
     ADC1->ISR = ADC_ISR_ADRDY;
@@ -2219,10 +2214,12 @@ static bool analog_read(uint8_t channel, uint16_t *sample)
 
 static void eps_adc_sample(void)
 {
-    static const uint8_t eps_channels[EPS_ADC_CHANNELS] = {13U, 14U, 5U, 6U};
+    static const uint8_t eps_channels[EPS_ADC_CHANNELS] = {
+        13U, SOLAR_TELEMETRY ? 14U : 3U, SOLAR_TELEMETRY ? 5U : 4U, 6U
+    };
     uint16_t readings[EPS_ADC_CHANNELS] = {0};
     uint8_t eps_valid = 0U;
-    const unsigned eps_count = SOLAR_TELEMETRY ? EPS_ADC_CHANNELS : EPS_UART_TELEMETRY ? 1U : 0U;
+    const unsigned eps_count = SOLAR_TELEMETRY ? EPS_ADC_CHANNELS : EPS_UART_TELEMETRY ? 3U : 0U;
     for (unsigned i = 0; i < eps_count; ++i) {
         if (analog_read(eps_channels[i], &readings[i])) { eps_valid |= (uint8_t)(1U << i); }
     }

@@ -194,15 +194,23 @@
   <div class="dashboard-grid">
     <div class="web-card">
       <h3>CubeSat con paneles desplegados</h3>
-      <div class="solar-scene" role="img" aria-label="CubeSat 3U con seis paneles, tres arriba y tres abajo">
-        <div class="solar-array solar-left"><i></i><i class="solar-bay"></i><i></i></div>
-        <div class="solar-array solar-body"><i></i><i class="solar-bay"></i><i></i></div>
-        <div class="solar-array solar-right"><i></i><i class="solar-bay"></i><i></i></div>
+      <div class="solar-scene" role="img" aria-label="Tres paneles solares">
+        <div class="solar-array solar-left"><i></i></div>
+        <div class="solar-array solar-body"><i></i></div>
+        <div class="solar-array solar-right"><i></i></div>
       </div>
     </div>
     <div class="web-card">
-      <h3>Arreglo solar 2S3P</h3>
-      <p>Dos paneles en serie por rama. Las tres ramas se conectan en paralelo.</p>
+      <h3>Voltaje de los tres paneles</h3>
+      <div class="metric-list">
+        <div><small>Panel 1 · PC4</small><b data-panel-voltage="0">—</b></div>
+        <div><small>Panel 2 · PC2</small><b data-panel-voltage="1">—</b></div>
+        <div><small>Panel 3 · PC3</small><b data-panel-voltage="2">—</b></div>
+      </div>
+      <p class="hint" id="panels-status" role="status">Esperando voltajes por LoRa.</p>
+      <svg class="chart-area" id="plot-solar" role="img" aria-label="Historial de voltaje de los tres paneles"></svg>
+      <div class="legend eps-legend"><span>Panel 1 · PC4</span><span>Panel 2 · PC2</span><span>Panel 3 · PC3</span></div>
+      <h3>Telemetría EPS</h3>
       <div class="eps-flow">
         <div class="eps-inputs">
           <div><small id="eps-solar-label">Pareja 1 · PC4</small><b data-eps-voltage="0">—</b></div>
@@ -223,16 +231,6 @@
       <p class="hint" id="solar-legacy" hidden></p>
       <p class="hint">Última muestra · <b id="solar-age">—</b></p>
       <p id="solar-status" aria-live="polite">Esperando telemetría solar</p>
-      <svg class="chart-area" id="plot-solar" role="img" aria-label="Historial de voltaje de las tres parejas y la batería"></svg>
-      <div class="legend eps-legend" aria-label="Series del gráfico"><span id="eps-solar-series">Pareja 1</span><span data-eps-analog-only>Pareja 2</span><span data-eps-analog-only>Pareja 3</span><span>Batería</span></div>
-      <section class="test-panel-card" aria-labelledby="test-panel-title">
-        <div class="test-panel-drawing" role="img" aria-label="Un panel solar"></div>
-        <div>
-          <h3 id="test-panel-title">Panel de prueba · PC4</h3>
-          <div class="test-panel-reading"><span id="test-panel-voltage">00.00</span><span>V</span></div>
-          <p class="hint" id="test-panel-status" aria-live="polite">Sin lectura reciente</p>
-        </div>
-      </section>
     </div>
   </div>
 </section>

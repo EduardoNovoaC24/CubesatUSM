@@ -20,6 +20,12 @@ Actualiza el binario STM32 y el sketch Pico desde la misma revisión. Aplica el 
 
 Los cuatro fotodiodos llegan desde el Arduino Nano por UART4 a 115200 baudios, 8N1. Conecta D1/TX del Nano a PC11 del STM32 (CN7 pin 2) mediante el divisor de 5 V a 3,3 V y conecta GND común. La trama ASCII es `PHOTO,675,650,320,120` seguida de CRLF. El firmware desactiva la captura de luz por los antiguos pines ADC y reenvía A0 a A3 usando el bloque binario LIGHT existente. Una lectura vencida se muestra como ausente.
 
+### Voltaje de los tres paneles
+
+En la versión con EPS por UART, el STM32 mide Panel 1 en **PC4 (CN10‑34)**, Panel 2 en **PC2 (CN7‑35)** y Panel 3 en **PC3 (CN7‑37)**. Usa un divisor de voltaje por panel con 330 kΩ arriba y 68 kΩ a GND, como en PC4. El punto medio va al ADC y las tierras deben ser comunes. Verifica que el ADC permanezca dentro de su rango de 0 a 3,3 V.
+
+La trama `PV3` lleva las tres lecturas en milivoltios, una máscara de validez y otra de saturación. La trama `EPSI` sigue llevando voltaje, corriente y batería desde el ESP32.
+
 ### Iniciar el servidor Python
 
 La carpeta `ground_station/` conserva el servidor y el panel original para gráficos, radar ADS-B y telemetría detallada. Sustituye los puertos de ejemplo por los que aparecen en tu PC.

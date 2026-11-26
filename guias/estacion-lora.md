@@ -24,7 +24,9 @@ Abre <http://localhost:8765>. Puedes omitir `--port` si solo usarás el Pico. Ci
 
 ## Compartir una radio en la misma red
 
-En el PC que tiene el Pico por USB, cierra cualquier navegador o monitor serie que esté usando ese puerto. Busca la dirección IPv4 del adaptador de red con `ipconfig` y ejecuta el servidor con el COM y la IP reales.
+En el PC que tiene el Pico por USB, abre la web y pulsa **Conectar Pico LoRa**. Al abrir el puerto se habilita **Modo servidor**. Introduce el COM y la IPv4 del adaptador de red (puedes consultarla con `ipconfig`), pulsa **Liberar USB y preparar comando**, y copia el comando a PowerShell desde la carpeta del repositorio. Cuando la terminal confirme el arranque, pulsa **Abrir panel LAN**.
+
+También puedes iniciar el servidor directamente desde la terminal si el Pico está libre. Sustituye el COM y la IPv4 del ejemplo por los valores de tu PC.
 
 ```powershell
 py ground_station/radar_stm32.py --pico-port COM8 --lan-ip 192.168.1.23

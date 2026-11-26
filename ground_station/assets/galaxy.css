@@ -48,6 +48,12 @@
 .usb-toolbar button:disabled { opacity:.55; }
 .usb-toolbar p { flex:1 1 16rem; color:var(--soft); margin:0; font-size:.8rem; }
 #stars { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:10000; }
+#server-tab:disabled { opacity:.5; cursor:not-allowed; }
+.server-setup form { display:flex; flex-wrap:wrap; gap:.8rem; align-items:end; }
+.server-setup label { display:grid; gap:.3rem; }
+.server-setup input { max-width:13rem; padding:.45rem; border:1px solid var(--line); border-radius:.4rem; color:inherit; background:var(--bg); }
+.server-setup pre { white-space:pre-wrap; overflow-wrap:anywhere; padding:.7rem; background:var(--bg); }
+.server-setup a { display:inline-block; text-decoration:none; }
 .model-scene { position:relative; }
 .model-particles { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
 .assembly-figure { position:absolute; inset:0; }

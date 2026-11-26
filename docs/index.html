@@ -68,7 +68,6 @@
   <p id="usb-notice" role="status">En Chrome, conecta el Pico por USB, cierra el monitor serie y selecciona su puerto.</p>
 </div>
 <canvas id="stars" aria-hidden="true"></canvas>
-<script src="./assets/browser_serial.js"></script>
 
 <nav class="app-nav" aria-label="Secciones de la estación">
   <button class="tab-btn" data-target="tab-radar" aria-selected="true">✈ Radar ADS-B</button>
@@ -77,7 +76,29 @@
   <button class="tab-btn" data-target="tab-graficos" aria-selected="false">▥ Gráficos</button>
   <button class="tab-btn" data-target="tab-rueda" aria-selected="false">Azimut</button>
   <button class="tab-btn" data-target="tab-solar" aria-selected="false">Paneles solares</button>
+<button id="server-tab" class="tab-btn" data-target="tab-servidor" aria-selected="false" disabled>Modo servidor</button>
 </nav>
+
+<section class="tab-panel cube-panel" id="tab-servidor" aria-label="Modo servidor">
+  <div class="panel-head"><div><h2>Modo servidor</h2><p>Comparte este Pico con otros PCs de tu red local.</p></div></div>
+  <div class="web-card server-setup">
+    <form id="server-setup">
+      <label>Puerto COM del Pico <input id="server-com" placeholder="COM8" required maxlength="8"></label>
+      <label>IPv4 de este PC <input id="server-ip" placeholder="192.168.1.23" required maxlength="15"></label>
+      <button class="cmd-btn" id="server-prepare" type="submit">Liberar USB y preparar comando</button>
+    </form>
+    <p>Consulta el puerto con <code>py ground_station/radar_stm32.py --list-ports</code> y la IPv4 con <code>ipconfig</code>.</p>
+    <div id="server-launch" hidden>
+      <p>Ejecuta este comando en PowerShell desde la carpeta del repositorio. Cuando la terminal muestre la URL y la clave temporal, abre el panel y comparte esa dirección.</p>
+      <pre id="server-command"></pre>
+      <button class="cmd-btn" id="server-copy" type="button">Copiar comando</button>
+      <a class="cmd-btn" id="server-open">Abrir panel LAN</a>
+      <button class="cmd-btn" id="server-cancel" type="button">Volver al modo USB</button>
+    </div>
+    <p id="server-status" role="status"></p>
+  </div>
+</section>
+
 <section class="tab-panel active" id="tab-radar" aria-label="Radar ADS-B">
 <main>
 <div class="mapwrap"><div id="map"></div><div class="topbar"><div class="stat"><label>En mapa</label><strong id="mapcount">0</strong></div><div class="stat"><label>Recibidas</label><strong id="total">0</strong></div><div class="stat"><label>Tramas inválidas</label><strong id="invalid">0</strong></div></div><div id="demo-banner" class="demo-banner" style="display:none">MODO SIMULACIÓN — no son aeronaves reales</div></div>
@@ -307,6 +328,7 @@
   </div>
 </section>
 
+<script src="./assets/browser_serial.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 if(!window.L){document.getElementById('planes').textContent='No se pudo cargar Leaflet: revisa la conexión a internet del PC.';} else {

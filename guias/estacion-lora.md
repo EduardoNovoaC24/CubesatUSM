@@ -2,11 +2,13 @@
 
 ## Desde cualquier PC con Chrome
 
-Abre [CubeSat - Ground Station](https://eduardonovoac24.github.io/CubesatUSM/) en Chrome de escritorio. Conecta el Pico LoRa por USB y sigue la pestaña **Conexión** para seleccionar el puerto. Usa **Telemetría** para ver la última trama, **Telecomandos** para enviar solicitudes al STM32 y **Registro** para distinguir mensajes del Pico de respuestas ACK y EVT del STM32.
+Abre [CubeSat - Ground Station](https://eduardonovoac24.github.io/CubesatUSM/) en Chrome de escritorio. Conecta el Pico LoRa por USB, pulsa **Conectar Pico LoRa** y selecciona su puerto. La página conserva las pestañas de radar ADS-B, telemetría, calibración y control, gráficos, misión y paneles solares de la estación local.
+
+El radar recibe las tramas ADS-B que lleguen por LoRa. Si tienes el STM32 conectado por ST-LINK, usa **Conectar ST-LINK ADS-B** para leer también ese puerto.
 
 El selector **Galaxia** cambia entre azul y morado, rojo y verde. Las transiciones y la formación del cubo respetan la preferencia de movimiento reducido del sistema.
 
-La web estática vive en `docs/` y usa Web Serial. Sirve esa carpeta desde HTTPS o localhost si necesitas probar una copia. GitHub Pages se puede configurar desde la rama `main`, carpeta `/docs`.
+La web estática usa Web Serial y ejecuta en el navegador los mismos analizadores Python del panel local. La primera conexión carga Pyodide desde su CDN. Para regenerar `docs/`, ejecuta `python ground_station/build_pages.py`. GitHub Pages publica `/docs` de la rama `main`.
 
 ## Panel local con gráficos y radar
 

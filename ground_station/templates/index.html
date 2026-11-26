@@ -333,7 +333,7 @@ function render(data){
   }
 }
 let failCount=0;
-async function poll(){try{const r=await fetch('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());failCount=0;}catch(e){failCount++;document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}}
+async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());failCount=0;}catch(e){failCount++;document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}}
 setInterval(poll,1000);poll();
 }
 </script>

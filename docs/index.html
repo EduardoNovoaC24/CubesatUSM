@@ -230,6 +230,8 @@
           <button class="cmd-btn" data-cmd="WHEEL" data-arg="brake-pwm" data-prefix="RUNS" data-confirm="true" disabled>Generar 20 pruebas</button>
           <button class="cmd-btn" data-cmd="WHEEL" data-value="STOP" disabled>Cancelar y desarmar</button>
         </div>
+        <p class="hint" data-bench-start-status role="status">Esperando el estado de la rueda.</p>
+        <p class="hint" id="brake-generate-status" role="status">Pulsa Iniciar antes de generar la tanda.</p>
         <p class="hint">Cada repetición aplica el PWM elegido durante 2 s antes de frenar. El giroscopio confirma reposo dentro de ±0,5 °/s durante 2 s. El tiempo se cuenta desde el inicio del frenado hasta la entrada en ese rango.</p>
         <div class="metric-list">
           <div><small>Frenado en curso</small><b id="adcs-elapsed">—</b></div>
@@ -247,6 +249,7 @@
           <input id="reference-deg" type="number" min="0" max="359" step="1" value="0" required>
           <button class="cmd-btn" data-cmd="WHEEL" data-arg="reference-deg" data-prefix="LIGHT" disabled>Seguir luz en Z</button>
         </div>
+        <p class="hint" data-bench-start-status role="status">Esperando el estado de la rueda.</p>
         <p class="hint">Asigna el azimut a la cara 1 al iniciar. Mirando desde +Z, las caras 1 a 4 corresponden a 0°, 90°, 180° y 270°.</p>
         <label class="hint mission-light-option"><input type="checkbox" id="light-invert"> Más luz corresponde a menor voltaje</label>
         <div class="metric-list">
@@ -385,7 +388,7 @@ async function poll(){try{const r=await (window.stationRequest || fetch)('/api/a
 setInterval(poll,1000);poll();
 }
 </script>
-<script defer src="./assets/cubesat_web.js?v=2495b30cbf"></script>
+<script defer src="./assets/cubesat_web.js?v=3d3523a9d3"></script>
 <script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

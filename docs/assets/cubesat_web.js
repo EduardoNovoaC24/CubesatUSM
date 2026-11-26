@@ -105,7 +105,20 @@
     }
     add('text',{x:526,y:210,'text-anchor':'end',fill:'#b97a83','font-size':11},'Últimos '+Math.round(dt)+' s');
   }
-  function renderBrakeBatch(batch, wheelReady) {
+  function benchStartBlock(wheel, wheelFresh, adcsFresh, batch) {
+    if(!wheelFresh)return 'Esperando telemetría reciente de la rueda por LoRa.';
+    if(!adcsFresh)return 'Llegan datos de la rueda, pero falta su estado ADCS.';
+    if(wheel.axis>=3)return 'Pulsa Aplicar eje con el eje y la polaridad del montaje.';
+    if(!wheel.gyro_calibrated)return 'Calibra el giroscopio con el CubeSat quieto o carga la calibración guardada.';
+    if(wheel.state===4)return 'La rueda está deteniéndose. Espera a que indique Desarmada.';
+    if(wheel.state===1)return 'El ESC se está armando. Espera a que indique Lista.';
+    if(wheel.state===3)return 'Hay una prueba en curso. Para cambiar de prueba, pulsa Detener y espera a que indique Desarmada.';
+    if(wheel.state===2&&!batch?.armed)return 'La rueda está armada en modo manual. Pulsa Detener y espera a que indique Desarmada.';
+    if(!Number.isFinite(wheel.body_rpm))return 'Esperando una lectura válida del giroscopio en el eje aplicado.';
+    if(Math.abs(wheel.body_rpm)>0.08)return 'Espera a que el CubeSat quede quieto antes de iniciar.';
+    return '';
+  }
+  function renderBrakeBatch(batch, wheelReady, benchBlock) {
     const seconds=batch?.seconds||[];
     const states=['Sin tanda','Acelerando','Frenando con el giroscopio','Preparando la siguiente repetición','Tanda completa','Tanda interrumpida'];
     const errors=['','Cancelada','Giro no válido','Se perdió el enlace','El PWM no produjo un giro medible','El frenado no se estabilizó','El montaje no volvió al reposo inicial'];
@@ -113,7 +126,14 @@
       states[batch.phase]+(batch.pulse?' · '+batch.pulse+' µs':'')+(batch.error?' · '+errors[batch.error]:'');
     document.getElementById('brake-count').textContent=seconds.length+' / 20';
     document.getElementById('brake-best').textContent=seconds.length?Math.min(...seconds).toFixed(2)+' s':'—';
-    document.querySelector('[data-prefix="RUNS"]').disabled=!(wheelReady&&batch?.armed&&!(batch.phase>=1&&batch.phase<=3));
+    const running=batch?.phase>=1&&batch?.phase<=3;
+    const canRun=wheelReady&&batch?.armed&&!running&&!benchBlock;
+    document.querySelector('[data-prefix="RUNS"]').disabled=!canRun;
+    let generateHint='Pulsa Iniciar y espera la confirmación del STM32.';
+    if(running)generateHint='La tanda ya está en curso.';
+    else if(canRun)generateHint='Armado bidireccional confirmado. Puedes generar las 20 pruebas.';
+    else if(batch?.armed&&benchBlock)generateHint=benchBlock;
+    document.getElementById('brake-generate-status').textContent=generateHint;
     const svg=document.getElementById('plot-brake');
     svg.replaceChildren();
     svg.setAttribute('viewBox','0 0 580 216');
@@ -334,11 +354,12 @@
       resultsId=undefined;
       if(!bench?.armed)benchWatch=false;
     }
-    document.querySelectorAll('[data-value="BENCH_ARM"]').forEach(btn=>{
-      btn.disabled=!(adcsFresh&&wheel.axis<3&&wheel.gyro_calibrated&&
-        (wheelIdle||maneuverReady&&bench?.armed));
+    const startBlock=benchStartBlock(wheel,wheelFresh,adcsFresh,bench);
+    document.querySelectorAll('[data-value="BENCH_ARM"]').forEach(btn=>btn.disabled=Boolean(startBlock));
+    document.querySelectorAll('[data-bench-start-status]').forEach(el=>{
+      el.textContent=startBlock||(bench?.armed?'Armado bidireccional confirmado.':'Listo para iniciar el armado bidireccional.');
     });
-    renderBrakeBatch(bench,maneuverReady);
+    renderBrakeBatch(bench,maneuverReady,startBlock);
     void pollBrakeBatch();
     document.querySelector('[data-prefix="TURN"]').disabled=!maneuverReady||Math.abs(wheel.body_rpm)>0.34;
     document.querySelector('[data-prefix="LIGHT"]').disabled=!maneuverReady||wheel.axis!==2||Math.abs(wheel.body_rpm)>0.34;
@@ -378,6 +399,7 @@
       document.getElementById('relay-status').textContent='Salida del relé: Sin confirmación';
       document.getElementById('wheel-state').textContent='Sin conexión con el servidor';
       document.getElementById('adcs-result').textContent='Sin conexión con el servidor';
+      document.querySelectorAll('[data-bench-start-status]').forEach(el=>el.textContent='Sin conexión con el panel. Comprueba el enlace al Pico.');
       renderMissionScene(null,false);
       document.querySelectorAll('[data-cmd="WHEEL"],[data-adcs-cal]').forEach(btn=>btn.disabled=true);
     }

@@ -166,6 +166,21 @@
         </div>
         <figcaption>Las cuatro caras laterales se representan en el módulo central. La rueda está dentro del módulo inferior.</figcaption>
       </figure>
+      <h3>Seguimiento de la luz</h3>
+      <div class="light-compass" id="light-compass" aria-hidden="true">
+        <span class="light-compass-ray" id="light-compass-ray" hidden></span>
+        <div class="light-compass-cube">
+          <span data-light-top-face="1">1</span><span data-light-top-face="2">2</span>
+          <span data-light-top-face="3">3</span><span data-light-top-face="4">4</span>
+          <b>Z+</b>
+        </div>
+      </div>
+      <div class="metric-list">
+        <div><small>Orientaci&oacute;n desde el inicio</small><b id="light-cube-angle">&mdash;</b></div>
+        <div><small>Luz respecto de cara 1</small><b id="light-angle-error">&mdash;</b></div>
+        <div><small>Cara m&aacute;s iluminada</small><b id="light-brightest">&mdash;</b></div>
+      </div>
+      <p id="light-track-status" class="hint" role="status">Esperando fotodiodos.</p>
       <h3>Fotodiodos del Nano</h3>
       <div class="metric-list mission-light-grid">
         <div><small>Cara 1 · A0</small><b data-light-value="1">—</b><meter aria-label="Señal relativa cara 1" data-light-meter="1" min="0" max="1023"></meter></div>
@@ -195,8 +210,10 @@
     <div class="web-card">
       <h3>Giro manual</h3>
       <div class="command-grid">
+        <button class="cmd-btn" id="turn-arm" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Preparar rueda</button>
         <button class="cmd-btn danger" id="spin-brake-manual" data-cmd="WHEEL" data-value="BRAKE" disabled>Frenar giro manual</button>
       </div>
+      <p class="hint" id="manual-ready-status" role="status">Esperando el estado de la rueda.</p>
       <p class="hint">Cuando los jueces suelten el CubeSat, pulsa Frenar giro manual. El resultado aparece en el estado y en los gr&aacute;ficos de frenado.</p>
       <h3>Giro temporizado</h3>
       <p class="hint">Eje y polaridad fijos en <strong>Z+</strong>.</p>
@@ -217,10 +234,10 @@
         <div><small>Duración ordenada</small><b id="spin-duration">—</b></div>
       </div>
       <p class="hint">Puedes girar el CubeSat a mano y pulsar Frenar, o usar Encender y despu&eacute;s Frenar. El reposo se confirma tras 10 s con velocidad y aceleraci&oacute;n angular cerca de cero. Desarmar ESC termina la correcci&oacute;n.</p>
-      <h3>Prueba de giro de 180°</h3>
+      <h3>Prueba angular y seguimiento de luz</h3>
       <div class="command-grid">
-        <button class="cmd-btn" id="turn-arm" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Armar para giro</button>
         <button class="cmd-btn" id="turn-start" data-cmd="WHEEL" data-value="TURN:180" disabled>Girar 180°</button>
+        <button class="cmd-btn" id="light-follow" data-cmd="WHEEL" data-value="LIGHT:0" disabled>Seguir luz</button>
       </div>
       <div class="metric-list">
         <div><small>Giro estimado</small><b id="turn-angle">—</b></div>

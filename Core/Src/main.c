@@ -1313,6 +1313,8 @@ static void telemetry_publish(FusionQuaternion q, bool valid, const MPU9250_Data
 #define FULL_TELEMETRY_PERIOD_MS 10000U
 #define WHEEL_READY_WINDOW_MS 20000U
 #define WHEEL_TIMED_SETTLE_DPS 0.25f
+#define WHEEL_TIMED_SETTLE_ACCEL_DPS2 0.5f
+#define WHEEL_TIMED_SETTLE_MS 10000U
 #define WHEEL_TIMED_RESUME_DPS 0.35f
 #define WHEEL_TIMED_DEADBAND_DPS 0.15f
 _Static_assert(SOLAR_R_TOP_OHM > 0U && SOLAR_R_BOTTOM_OHM > 0U && SOLAR_ADC_REF_MV > 0U,
@@ -1576,9 +1578,9 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     static bool below;
     static WheelBrakeBatch batch;
     static uint32_t timed_duration_ms, timed_started_at;
-    static bool timed_at_target, timed_braking;
+    static bool timed_at_target, timed_braking, manual_brake_arming;
     static int timed_level;
-    static float timed_filtered_rate, timed_brake_level;
+    static float timed_filtered_rate, timed_filtered_accel, timed_brake_level;
     static int timed_direction;
     static uint32_t timed_direction_at, timed_neutral_at;
     bool request_timed_brake = false;
@@ -1653,10 +1655,23 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         }
     }
     if (wheel->detumble == DETUMBLE_ACTIVE) {
+        float brake_dt = 0.0f;
+        if (timed_braking) {
+            brake_dt = (float)(now - ramp_at) * 0.001f;
+            ramp_at = now;
+            if (brake_dt > 0.0f) {
+                const float last_rate = timed_filtered_rate;
+                timed_filtered_rate += (brake_dt / (0.18f + brake_dt)) * (rate - timed_filtered_rate);
+                const float acceleration = (timed_filtered_rate - last_rate) / brake_dt;
+                timed_filtered_accel += (brake_dt / (0.30f + brake_dt)) *
+                                        (acceleration - timed_filtered_accel);
+            }
+        }
         /* Keep rate control live while holding. Restart the settling timer
          * when a sustained disturbance takes the body outside the hold band. */
         if (timed_braking && wheel->angles_ddeg[2] == 10 * TIMED_DONE &&
-            fabsf(rate) > WHEEL_TIMED_RESUME_DPS) {
+            (fabsf(rate) > WHEEL_TIMED_RESUME_DPS ||
+             fabsf(timed_filtered_accel) > 2.0f * WHEEL_TIMED_SETTLE_ACCEL_DPS2)) {
             wheel->angles_ddeg[2] = TIMED_RUNNING;
             detumble_at = now;
             below = false;
@@ -1714,11 +1729,14 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             const float error = tracking ? light_body : target_angle - rotation;
             const float tolerance = tracking ? 3.0f : 1.0f;
             const float settle_rate = timed_braking ? WHEEL_TIMED_SETTLE_DPS : 0.5f;
-            const bool settled = fabsf(rate) <= settle_rate && (braking || fabsf(error) <= tolerance);
+            const bool settled = fabsf(rate) <= settle_rate && (braking || fabsf(error) <= tolerance) &&
+                                 (!timed_braking || (fabsf(timed_filtered_rate) <= settle_rate &&
+                                  fabsf(timed_filtered_accel) <= WHEEL_TIMED_SETTLE_ACCEL_DPS2));
             if (settled) {
                 if (!below) { below_at = now; }
                 below = true;
-                if (now - below_at >= 2000U && !tracking && !timed_holding) {
+                const uint32_t dwell = timed_braking ? WHEEL_TIMED_SETTLE_MS : 2000U;
+                if (now - below_at >= dwell && !tracking && !timed_holding) {
                     wheel->elapsed_cs = (uint16_t)((below_at - detumble_at) / 10U);
                     if (timed_braking) {
                         wheel->angles_ddeg[2] = 10 * TIMED_DONE;
@@ -1744,15 +1762,8 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                 below = false;
             }
             if (timed_braking) {
-                const float dt = (float)(now - ramp_at) * 0.001f;
-                ramp_at = now;
-                const float filtered_before = timed_filtered_rate;
-                timed_filtered_rate += (dt / (0.18f + dt)) * (rate - timed_filtered_rate);
-                /* Incremental angular-rate PI: integrate a proportional rate
-                 * correction into PWM, with rate-derivative damping and clamping. */
-                const float acceleration = dt > 0.0f ?
-                                           (timed_filtered_rate - filtered_before) / dt : 0.0f;
-                const float predicted_rate = timed_filtered_rate + 0.20f * acceleration;
+                /* Integrate the rate correction into PWM with derivative damping. */
+                const float predicted_rate = timed_filtered_rate + 0.20f * timed_filtered_accel;
                 const float correction = predicted_rate * timed_filtered_rate > 0.0f ?
                                          fmaxf(-20.0f, fminf(20.0f, predicted_rate)) : 0.0f;
                 const int direction = fabsf(correction) <= WHEEL_TIMED_DEADBAND_DPS || fabsf(rate) <= WHEEL_TIMED_DEADBAND_DPS ||
@@ -1765,7 +1776,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                 }
                 if (direction && now - timed_direction_at >= 120U) {
                     const float levels_per_s = fminf(4.0f, 0.30f + 0.45f * fabsf(correction));
-                    timed_brake_level += (float)direction * levels_per_s * fminf(dt, 0.05f);
+                    timed_brake_level += (float)direction * levels_per_s * fminf(brake_dt, 0.05f);
                     timed_brake_level = fmaxf(-P2P_WHEEL_MAX_LEVEL,
                                              fminf(P2P_WHEEL_MAX_LEVEL, timed_brake_level));
                     wheel->level = (int8_t)lroundf(timed_brake_level);
@@ -1844,8 +1855,13 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         *enabled = false;
         wheel_stop(wheel, phase_at, now);
     }
+    if (manual_brake_arming && (!link_ok || !rate_ok || imu_stale || fabsf(rate) >= 475.0f)) {
+        wheel->angles_ddeg[2] = 10 * (link_ok ? TIMED_IMU : TIMED_LINK);
+        wheel_stop(wheel, phase_at, now);
+    }
     if (wheel->state == WHEEL_ARMING && now - *phase_at >= 3000U) {
-        wheel->state = timed_duration_ms ? WHEEL_RUNNING : WHEEL_READY;
+        wheel->state = (timed_duration_ms || manual_brake_arming) ? WHEEL_RUNNING : WHEEL_READY;
+        if (manual_brake_arming) { request_timed_brake = true; }
         if (timed_duration_ms) {
             wheel->level = (int8_t)timed_level;
             last_step_at = now;
@@ -1859,6 +1875,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     if (wheel->state == WHEEL_STOPPING) {
         batch.armed = false;
         timed_braking = false;
+        manual_brake_arming = false;
     }
     if (wheel->state == WHEEL_STOPPING && now - *phase_at >= 5000U) {
         wheel->state = WHEEL_IDLE;
@@ -1885,7 +1902,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         const char *detail = "WHEEL_STATUS_IN_TELEMETRY";
         if (action == WHEEL_CMD_STOP) {
             *enabled = false;
-            if (timed_duration_ms || timed_braking) {
+            if (timed_duration_ms || timed_braking || manual_brake_arming) {
                 wheel->angles_ddeg[2] = 10 * TIMED_STOPPED;
                 timed_duration_ms = 0U;
                 timed_braking = false;
@@ -1896,7 +1913,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             detail = "WHEEL_STOP_REQUEST_APPLIED";
         } else if (command.id == 0 && action == WHEEL_CMD_PROFILE_OFF) {
             *enabled = false;
-            if (timed_duration_ms || timed_braking) {
+            if (timed_duration_ms || timed_braking || manual_brake_arming) {
                 wheel->angles_ddeg[2] = 10 * TIMED_STOPPED;
                 timed_duration_ms = 0U;
                 timed_braking = false;
@@ -1907,7 +1924,9 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             if (wheel->state == WHEEL_IDLE) { wheel->profile = WHEEL_PROFILE_NONE; }
             else { error = "WAIT_FOR_STOP"; }
         } else if (action == WHEEL_CMD_TIMED_BRAKE) {
-            if (timed_braking) {
+            if (manual_brake_arming) {
+                detail = "MANUAL_BRAKE_ARMING";
+            } else if (timed_braking) {
                 detail = "TIMED_BRAKING";
             } else if (timed_duration_ms && wheel->state == WHEEL_ARMING) {
                 timed_duration_ms = 0U;
@@ -1918,9 +1937,28 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                 request_timed_brake = true;
                 detail = "TIMED_BRAKING";
             } else {
-                error = "TIMED_SPIN_REQUIRED";
+                if (wheel->state != WHEEL_IDLE) {
+                    error = "WAIT_FOR_STOP";
+                } else if (!link_ok || !rate_ok || imu_stale || fabsf(rate) >= 475.0f) {
+                    error = "CHECK_IDLE_LINK_AXIS_GYRO";
+                } else {
+                    *enabled = false;
+                    batch.armed = false;
+                    manual_brake_arming = true;
+                    wheel->profile = WHEEL_PROFILE_BIDIR;
+                    wheel->state = WHEEL_ARMING;
+                    wheel->level = 0;
+                    wheel->pulse = wheel_neutral(wheel->profile);
+                    wheel->maneuver = WHEEL_MANEUVER_TIMED;
+                    wheel->detumble = DETUMBLE_NONE;
+                    wheel->elapsed_cs = 0U;
+                    for (unsigned i = 0; i < 4; ++i) { wheel->angles_ddeg[i] = INT16_MIN; }
+                    wheel->angles_ddeg[2] = TIMED_RUNNING;
+                    *phase_at = now;
+                    detail = "MANUAL_BRAKE_ARMING";
+                }
             }
-        } else if (timed_duration_ms || timed_braking) {
+        } else if (timed_duration_ms || timed_braking || manual_brake_arming) {
             if (action != WHEEL_CMD_STATUS) { error = "TIMED_SPIN_ACTIVE"; }
         } else if (action > WHEEL_TIMED_BASE) {
             const unsigned request = (unsigned)(action - WHEEL_TIMED_BASE);
@@ -2087,10 +2125,13 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                               : "[WHEEL] Orden local aplicada\r\n");
         }
     }
-    if (request_timed_brake && timed_duration_ms && wheel->state == WHEEL_RUNNING) {
+    if (request_timed_brake && (timed_duration_ms || manual_brake_arming) &&
+        wheel->state == WHEEL_RUNNING) {
+        manual_brake_arming = false;
         timed_duration_ms = 0U;
         timed_braking = true;
         timed_filtered_rate = rate;
+        timed_filtered_accel = 0.0f;
         timed_brake_level = ((float)wheel->pulse - wheel_neutral(wheel->profile)) / 5.0f;
         wheel->level = (int8_t)lroundf(timed_brake_level);
         timed_direction = 0;

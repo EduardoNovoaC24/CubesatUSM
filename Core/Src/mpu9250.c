@@ -88,7 +88,7 @@ HAL_StatusTypeDef MPU9250_Init(I2C_HandleTypeDef *hi2c)
     if ((MPU9250_ReadWhoAmI(&value) != HAL_OK) ||
         ((value != 0x70U) && (value != 0x71U) && (value != 0x73U))) return HAL_ERROR;
 
-    /* +/-2 g, +/-250 dps, DLPF 41 Hz y muestreo a 50 Hz. */
+    /* +/-2 g, +/-500 dps, DLPF 41 Hz y muestreo a 50 Hz. */
     if (write_register(MPU9250_I2C_ADDRESS, REG_ACCEL_CONFIG, 0x00U) != HAL_OK) return HAL_ERROR;
     if (write_register(MPU9250_I2C_ADDRESS, REG_GYRO_CONFIG, 0x08U) != HAL_OK) return HAL_ERROR;
     if (write_register(MPU9250_I2C_ADDRESS, REG_ACCEL_CONFIG2, 0x03U) != HAL_OK) return HAL_ERROR;

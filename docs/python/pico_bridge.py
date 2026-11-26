@@ -331,10 +331,11 @@ class PicoBridge:
                             if maneuver:
                                 mode, *angles = map(int, maneuver.groups())
                                 if mode and all(-32768 <= angle <= 32767 for angle in angles):
+                                    keys = (('brake_to_5rpm_s', 'brake_initial_rpm') if mode == 1 else
+                                            ('rotation_deg', 'target_deg', 'reference_deg', 'light_azimuth_deg'))
                                     self.wheel.update(maneuver=mode, **{
                                         key: None if angle == -32768 else angle / 10
-                                        for key, angle in zip(('rotation_deg', 'target_deg',
-                                                               'reference_deg', 'light_azimuth_deg'), angles)
+                                        for key, angle in zip(keys, angles)
                                     })
                             self.adcs_history.append(dict(self.wheel, t=time.time()))
                     self.wheel_at = time.monotonic()

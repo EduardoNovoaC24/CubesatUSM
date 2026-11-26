@@ -95,6 +95,65 @@
     const matrix='matrix3d('+m.join(',')+')';
     ['sat-model-1','sat-model-2'].forEach(id=>document.getElementById(id).style.transform=matrix);
   }
+  const azimuthScene=document.getElementById('azimuth-scene');
+  const azimuthCamera=document.getElementById('azimuth-camera');
+  const azimuthModel=document.getElementById('azimuth-model');
+  const orbit=document.getElementById('azimuth-orbit');
+  const elevation=document.getElementById('azimuth-elevation');
+  const judgeAzimuth=document.getElementById('true-azimuth');
+  const measureLight=document.getElementById('measure-light');
+  let lightMeasurement=null;
+  let cameraDrag;
+  const wrapDegrees=angle=>((angle%360)+360)%360;
+  const showCamera=()=>azimuthCamera.style.transform=`rotateX(${elevation.value}deg) rotateY(${orbit.value}deg)`;
+  [orbit,elevation].forEach(input=>input.addEventListener('input',showCamera));
+  showCamera();
+  azimuthScene.addEventListener('pointerdown',event=>{
+    if(event.button!==0)return;
+    azimuthScene.setPointerCapture(event.pointerId);
+    cameraDrag={x:event.clientX,y:event.clientY,az:Number(orbit.value),el:Number(elevation.value)};
+  });
+  azimuthScene.addEventListener('pointermove',event=>{
+    if(!cameraDrag||!azimuthScene.hasPointerCapture(event.pointerId))return;
+    orbit.value=wrapDegrees(cameraDrag.az+(event.clientX-cameraDrag.x)*.6+180)-180;
+    elevation.value=Math.max(-75,Math.min(75,cameraDrag.el-(event.clientY-cameraDrag.y)*.6));
+    showCamera();
+  });
+  azimuthScene.addEventListener('lostpointercapture',()=>cameraDrag=undefined);
+
+  function stationaryLight(wheel){
+    if(!wheel||wheel.age>25||![0,2].includes(wheel.state)||!Number.isFinite(wheel.body_rpm)||Math.abs(wheel.body_rpm)>.08)return null;
+    const channels=[wheel.light_1,wheel.light_2,wheel.light_3,wheel.light_4];
+    if(!channels.every(Number.isFinite))return null;
+    const sign=document.getElementById('light-invert').checked?-1:1;
+    const x=sign*(channels[0]-channels[2]),y=sign*(channels[1]-channels[3]);
+    return Math.hypot(x,y)>=80?Math.atan2(y,x)*180/Math.PI:null;
+  }
+  function renderAzimuth(wheel){
+    const tracking=wheel?.maneuver===3;
+    const rotation=tracking?wheel.rotation_deg:null;
+    const reference=lightMeasurement?.reference??(tracking?wheel.reference_deg:null);
+    const light=lightMeasurement?.light??(tracking?wheel.light_azimuth_deg:null);
+    document.getElementById('maneuver-reference').textContent=fmt(reference,'°',1);
+    document.getElementById('maneuver-light').textContent=fmt(light,'°',1);
+    document.getElementById('azimuth-rotation').textContent=fmt(rotation,'°',1);
+    if(Number.isFinite(rotation))azimuthModel.style.transform=`rotateY(${-rotation}deg)`;
+    else azimuthModel.style.transform='';
+    const target=judgeAzimuth.valueAsNumber;
+    const error=Number.isFinite(light)&&Number.isFinite(target)&&judgeAzimuth.validity.valid?
+      Math.abs(wrapDegrees(light-target+180)-180):null;
+    document.getElementById('azimuth-error').textContent=error===null?'—':
+      error.toFixed(1)+'° · '+(error<=5?'≤5°':error<=15?'≤15°':error<=30?'≤30°':'>30°');
+    measureLight.disabled=stationaryLight(wheel)===null;
+  }
+  measureLight.addEventListener('click',()=>{
+    const angle=stationaryLight(picoState.wheel);
+    const reference=document.getElementById('reference-deg');
+    if(angle===null||!reference.reportValidity())return;
+    lightMeasurement={reference:reference.valueAsNumber,light:wrapDegrees(reference.valueAsNumber+angle)};
+    renderAzimuth(picoState.wheel);
+  });
+  judgeAzimuth.addEventListener('input',()=>renderAzimuth(picoState.wheel?.age<=25?picoState.wheel:null));
   function drawChart(id,history,keys,colors){
     const svg=document.getElementById(id);if(!svg)return;
     const ns='http://www.w3.org/2000/svg';svg.replaceChildren();svg.setAttribute('viewBox','0 0 540 218');
@@ -344,6 +403,10 @@
     document.getElementById('adcs-rate').textContent=adcsFresh?fmt(wheel.body_rpm,'',2):'—';
     const activeTest=adcsFresh?(wheel.maneuver??(wheel.detumble?1:0)):0;
     document.getElementById('adcs-elapsed').textContent=activeTest===1?fmt(wheel.elapsed_s,' s',2):'—';
+    document.getElementById('brake-start-rpm').textContent=activeTest===1?fmt(wheel.brake_initial_rpm,' rpm',1):'—';
+    document.getElementById('brake-competition-time').textContent=activeTest===1?
+      (Number.isFinite(wheel.brake_initial_rpm)&&wheel.brake_initial_rpm<5?'Inicio bajo 5 rpm':
+        fmt(wheel.brake_to_5rpm_s,' s',1)):'—';
     document.querySelectorAll('[data-test-result]').forEach(el=>{
       const status=activeTest===Number(el.dataset.testResult)?results[wheel.detumble]:
         adcsFresh?'Sin prueba':'Sin telemetría ADCS reciente';
@@ -377,12 +440,12 @@
     });
     renderBrakeBatch(bench,maneuverReady,startBlock);
     void pollBrakeBatch();
+    document.querySelector('[data-value="DETUMBLE"]').disabled=!maneuverReady||Math.abs(wheel.body_rpm)>=475/6;
     document.querySelector('[data-prefix="TURN"]').disabled=!maneuverReady||Math.abs(wheel.body_rpm)>0.34;
     document.querySelector('[data-prefix="LIGHT"]').disabled=!maneuverReady||wheel.axis!==2||Math.abs(wheel.body_rpm)>0.34;
     document.getElementById('maneuver-turn').textContent=adcsFresh&&wheel.maneuver===2?
       fmt(wheel.rotation_deg,'°',1)+' / '+fmt(wheel.target_deg,'°',1):'—';
-    document.getElementById('maneuver-reference').textContent=adcsFresh?fmt(wheel.reference_deg,'°',1):'—';
-    document.getElementById('maneuver-light').textContent=adcsFresh?fmt(wheel.light_azimuth_deg,'°',1):'—';
+    renderAzimuth(adcsFresh?wheel:null);
     document.getElementById('adcs-export').disabled=!data.adcs_history?.length;
     const wheelCmd=(data.commands||[]).filter(cmd=>cmd.name==='WHEEL'&&!cmd.detail.startsWith('BRAKE,')).at(-1);
     if(wheelCmd)document.getElementById('wheel-command-response').textContent=
@@ -435,6 +498,7 @@
       const r=await (window.stationRequest || fetch)('/api/pico/command',commandRequest({command:btn.dataset.cmd,args}));
       const x=await r.json();if(!r.ok)throw Error(x.error||'No se pudo encolar');
       if(btn.dataset.value==='BENCH_ARM'||btn.dataset.prefix==='RUNS')benchStartId=x.id;
+      if(btn.dataset.prefix==='LIGHT')lightMeasurement=null;
       msg.textContent='#'+x.id+' en cola; esperando respuesta de la STM32 (NO aplicado todavía)';
     }catch(err){
       msg.textContent='Error: '+err.message;
@@ -450,7 +514,7 @@
     if(!rows.length)return;
     const keys=['t','axis','inverted','body_rpm','elapsed_s','detumble','pulse','level','rpm','leds',
       'gyro_calibrated','mag_calibrated','mag_valid','fusion_9dof','light_1','light_2','light_3','light_4',
-      'maneuver','rotation_deg','target_deg','reference_deg','light_azimuth_deg'];
+      'maneuver','rotation_deg','target_deg','reference_deg','light_azimuth_deg','brake_initial_rpm','brake_to_5rpm_s'];
     const csv=[keys.join(','),...rows.map(row=>keys.map(key=>row[key]??'').join(','))].join('\n');
     const uri=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
     const link=document.createElement('a');link.href=uri;link.download='adcs-telemetria.csv';link.click();

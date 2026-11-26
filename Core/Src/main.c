@@ -1592,6 +1592,8 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                     wheel->maneuver = WHEEL_MANEUVER_BRAKE;
                     wheel->detumble = DETUMBLE_ACTIVE;
                     initial_speed = fabsf(rate);
+                    wheel->angles_ddeg[0] = INT16_MIN;
+                    wheel->angles_ddeg[1] = clamp_float_to_i16(initial_speed * (10.0f / 6.0f));
                     detumble_at = integrated_at = now;
                     ramp_at = now - 200U;
                     below = false;
@@ -1632,6 +1634,12 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             if (batch.stage == BRAKE_CONTROL) { wheel_batch_stop(&batch, BRAKE_ERROR_CONTROL); }
             wheel_stop(wheel, phase_at, now);
         } else {
+            /* In brake telemetry, MAN's first two fields carry time to <5 rpm
+             * (tenths of a second) and initial body speed (tenths of rpm). */
+            if (braking && wheel->angles_ddeg[0] == INT16_MIN &&
+                initial_speed >= 30.0f && fabsf(rate) < 30.0f) {
+                wheel->angles_ddeg[0] = (int16_t)(elapsed / 100U);
+            }
             if (!braking) {
                 rotation += (rate + previous_rate) * 0.0005f * (float)(now - integrated_at);
                 wheel->angles_ddeg[0] = clamp_float_to_i16(rotation * 10.0f);
@@ -1881,7 +1889,8 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                 reference = tracking ? (float)(light_config % 360) : 0.0f;
                 light_inverted = tracking && light_config >= 360;
                 wheel->angles_ddeg[0] = braking ? INT16_MIN : 0;
-                wheel->angles_ddeg[1] = braking || tracking ? INT16_MIN : (int16_t)(target_angle * 10.0f);
+                wheel->angles_ddeg[1] = braking ? clamp_float_to_i16(initial_speed * (10.0f / 6.0f)) :
+                                        tracking ? INT16_MIN : (int16_t)(target_angle * 10.0f);
                 wheel->angles_ddeg[2] = tracking ? (int16_t)(reference * 10.0f) : INT16_MIN;
                 wheel->angles_ddeg[3] = tracking ?
                     (int16_t)(wheel_wrap_degrees(reference + light_body) * 10.0f) : INT16_MIN;

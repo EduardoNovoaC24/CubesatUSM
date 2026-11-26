@@ -1430,6 +1430,14 @@ static size_t telemetry_copy(uint8_t *payload, size_t capacity, bool full, bool 
                                     wheel.ready_elapsed_cs : wheel.elapsed_cs;
         payload[19] = (uint8_t)elapsed_cs;
         payload[20] = (uint8_t)(elapsed_cs >> 8U);
+        /* The Pico already decodes the 22-byte ADCS frame. In that frame
+         * the high axis bits identify timed telemetry and its hold phase. */
+        if (!full && wheel.maneuver == WHEEL_MANEUVER_TIMED && wheel.state == WHEEL_RUNNING &&
+            wheel.angles_ddeg[2] <= 10) {
+            payload[15] |= (uint8_t)(0x80U | (wheel.angles_ddeg[2] == 10 ? 0x40U : 0U));
+            payload[21] = sensor_flags;
+            return P2P_WHEEL_ADCS_LEN;
+        }
         payload[21] = (uint8_t)(sensor_flags | (HAL_GetTick() - light_ms <= 250U ? light_mask : 0U));
         P2P_PackLight(&payload[22], light);
         payload[28] = wheel.maneuver;
@@ -1572,7 +1580,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     static int timed_level;
     static float timed_filtered_rate, timed_brake_level;
     static int timed_direction;
-    static uint32_t timed_direction_at;
+    static uint32_t timed_direction_at, timed_neutral_at;
     bool request_timed_brake = false;
     float rate = 0.0f;
     bool rate_ok;
@@ -1740,13 +1748,13 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                 ramp_at = now;
                 const float filtered_before = timed_filtered_rate;
                 timed_filtered_rate += (dt / (0.18f + dt)) * (rate - timed_filtered_rate);
-                /* A reaction wheel transfers opposite angular momentum to the body.
-                 * Estimate the remaining correction after the ESC response delay. */
+                /* Incremental angular-rate PI: integrate a proportional rate
+                 * correction into PWM, with rate-derivative damping and clamping. */
                 const float acceleration = dt > 0.0f ?
                                            (timed_filtered_rate - filtered_before) / dt : 0.0f;
                 const float predicted_rate = timed_filtered_rate + 0.20f * acceleration;
                 const float correction = predicted_rate * timed_filtered_rate > 0.0f ?
-                                         copysignf(fminf(fabsf(predicted_rate), fabsf(timed_filtered_rate)), rate) : 0.0f;
+                                         fmaxf(-20.0f, fminf(20.0f, predicted_rate)) : 0.0f;
                 const int direction = fabsf(correction) <= WHEEL_TIMED_DEADBAND_DPS || fabsf(rate) <= WHEEL_TIMED_DEADBAND_DPS ||
                                       rate * timed_filtered_rate <= 0.0f ? 0 :
                                       ((correction < 0.0f) != wheel->invert ? -1 : 1);
@@ -1756,7 +1764,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                     timed_brake_level = ((float)wheel->pulse - wheel_neutral(wheel->profile)) / 5.0f;
                 }
                 if (direction && now - timed_direction_at >= 120U) {
-                    const float levels_per_s = fminf(7.0f, 0.4f + 0.35f * fabsf(correction));
+                    const float levels_per_s = fminf(4.0f, 0.30f + 0.45f * fabsf(correction));
                     timed_brake_level += (float)direction * levels_per_s * fminf(dt, 0.05f);
                     timed_brake_level = fmaxf(-P2P_WHEEL_MAX_LEVEL,
                                              fminf(P2P_WHEEL_MAX_LEVEL, timed_brake_level));
@@ -2086,7 +2094,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         timed_brake_level = ((float)wheel->pulse - wheel_neutral(wheel->profile)) / 5.0f;
         wheel->level = (int8_t)lroundf(timed_brake_level);
         timed_direction = 0;
-        timed_direction_at = now;
+        timed_direction_at = timed_neutral_at = now;
         wheel->detumble = DETUMBLE_ACTIVE;
         wheel->elapsed_cs = 0U;
         initial_speed = fabsf(rate);
@@ -2099,7 +2107,13 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
         const int offset = timed_braking ? (int)lroundf(5.0f * timed_brake_level) : 5 * wheel->level;
         const int target = (int)wheel_neutral(wheel->profile) + offset;
         const int delta = target - wheel->pulse;
-        wheel->pulse = (uint16_t)(wheel->pulse + (delta > 5 ? 5 : delta < -5 ? -5 : delta));
+        const int slew = timed_braking ? 1 : 5;
+        const uint16_t neutral = wheel_neutral(wheel->profile);
+        if (!timed_braking || wheel->pulse != neutral || now - timed_neutral_at >= 150U) {
+            const bool moving = wheel->pulse != neutral;
+            wheel->pulse = (uint16_t)(wheel->pulse + (delta > slew ? slew : delta < -slew ? -slew : delta));
+            if (timed_braking && moving && wheel->pulse == neutral) { timed_neutral_at = now; }
+        }
     }
     ADCS_ControlSetBenchPulse(&adcs_control, wheel->pulse);
     taskENTER_CRITICAL();

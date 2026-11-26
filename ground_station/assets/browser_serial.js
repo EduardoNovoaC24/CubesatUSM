@@ -7,6 +7,12 @@
   };
   const labels = { pico: 'Pico LoRa', adsb: 'ST-LINK ADS-B' };
   const sessions = {};
+  const serverTab = document.getElementById('server-tab');
+  const prepare = document.getElementById('server-prepare');
+  const launch = document.getElementById('server-launch');
+  const command = document.getElementById('server-command');
+  const serverStatus = document.getElementById('server-status');
+  let serverPrepared = false;
   let backend;
   let loading;
   const encoder = new TextEncoder();
@@ -98,8 +104,9 @@
   }
 
   async function close(source, session, message) {
-    if (session.closing) return;
+    if (session.closing) return false;
     session.closing = true;
+    let closed = false;
     buttons[source].disabled = true;
     clearTimeout(session.hello);
     try {
@@ -107,16 +114,75 @@
       await session.reading;
       session.writer?.releaseLock();
       await session.port.close();
+      closed = true;
     } catch (error) {
       message = error.message;
     } finally {
       backend.link_status(source, false, message);
       delete sessions[source];
       buttons[source].textContent = 'Conectar ' + labels[source];
-      buttons[source].disabled = false;
+      buttons[source].disabled = source === 'pico' && serverPrepared;
       notice.textContent = labels[source] + ' · ' + message;
+      if (source === 'pico' && !serverPrepared) lockServerTab();
+    }
+    return closed;
+  }
+
+  function lockServerTab() {
+    serverTab.disabled = true;
+    if (serverTab.getAttribute('aria-selected') === 'true') {
+      document.querySelector('[data-target="tab-radar"]').click();
     }
   }
+
+  document.getElementById('server-setup').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const port = document.getElementById('server-com').value.trim().toUpperCase();
+    const ip = document.getElementById('server-ip').value.trim();
+    const parts = ip.split('.');
+    const [a, b] = parts.map(Number);
+    const privateIp = parts.length === 4 &&
+      parts.every(part => /^(0|[1-9]\d{0,2})$/.test(part) && Number(part) <= 255) &&
+      (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168));
+    if (!/^COM[1-9]\d{0,4}$/.test(port) || !privateIp) {
+      serverStatus.textContent = 'Introduce un puerto COM y una dirección IPv4 privada válidos.';
+      return;
+    }
+    const session = sessions.pico;
+    if (!session || session.closing || serverPrepared) return;
+    serverPrepared = true;
+    prepare.disabled = true;
+    if (!await close('pico', session, 'USB liberado para el servidor LAN')) {
+      serverPrepared = false;
+      prepare.disabled = false;
+      buttons.pico.disabled = false;
+      serverStatus.textContent = 'No se pudo liberar el Pico. Vuelve a conectarlo antes de reintentar.';
+      return;
+    }
+    command.textContent = `py ground_station/radar_stm32.py --pico-port ${port} --lan-ip ${ip}`;
+    document.getElementById('server-open').href = `http://${ip}:8765/`;
+    launch.hidden = false;
+    serverStatus.textContent = 'USB liberado. El servidor puede abrir el puerto.';
+  });
+
+  document.getElementById('server-copy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(command.textContent);
+      serverStatus.textContent = 'Comando copiado.';
+    } catch {
+      serverStatus.textContent = 'Selecciona y copia el comando de arriba.';
+    }
+  });
+
+  document.getElementById('server-cancel').addEventListener('click', () => {
+    serverPrepared = false;
+    prepare.disabled = false;
+    buttons.pico.disabled = false;
+    launch.hidden = true;
+    serverStatus.textContent = '';
+    lockServerTab();
+    buttons.pico.focus();
+  });
 
   for (const [source, button] of Object.entries(buttons)) {
     button.addEventListener('click', async () => {
@@ -148,6 +214,7 @@
         }
         button.textContent = 'Desconectar ' + labels[source];
         notice.textContent = labels[source] + ' conectado a 115200 baudios.';
+        if (source === 'pico') serverTab.disabled = false;
       } catch (error) {
         if (session) await close(source, session, error.message);
         else notice.textContent = error.name === 'NotFoundError' ? 'No se seleccionó un puerto.' : error.message;

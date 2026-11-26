@@ -20,12 +20,35 @@ toolbar = """
   <p id="usb-notice" role="status">En Chrome, conecta el Pico por USB, cierra el monitor serie y selecciona su puerto.</p>
 </div>
 <canvas id="stars" aria-hidden="true"></canvas>
-<script src="./assets/browser_serial.js"></script>
+"""
+server_tab = '<button id="server-tab" class="tab-btn" data-target="tab-servidor" aria-selected="false" disabled>Modo servidor</button>'
+server_panel = """
+<section class="tab-panel cube-panel" id="tab-servidor" aria-label="Modo servidor">
+  <div class="panel-head"><div><h2>Modo servidor</h2><p>Comparte este Pico con otros PCs de tu red local.</p></div></div>
+  <div class="web-card server-setup">
+    <form id="server-setup">
+      <label>Puerto COM del Pico <input id="server-com" placeholder="COM8" required maxlength="8"></label>
+      <label>IPv4 de este PC <input id="server-ip" placeholder="192.168.1.23" required maxlength="15"></label>
+      <button class="cmd-btn" id="server-prepare" type="submit">Liberar USB y preparar comando</button>
+    </form>
+    <p>Consulta el puerto con <code>py ground_station/radar_stm32.py --list-ports</code> y la IPv4 con <code>ipconfig</code>.</p>
+    <div id="server-launch" hidden>
+      <p>Ejecuta este comando en PowerShell desde la carpeta del repositorio. Cuando la terminal muestre la URL y la clave temporal, abre el panel y comparte esa dirección.</p>
+      <pre id="server-command"></pre>
+      <button class="cmd-btn" id="server-copy" type="button">Copiar comando</button>
+      <a class="cmd-btn" id="server-open">Abrir panel LAN</a>
+      <button class="cmd-btn" id="server-cancel" type="button">Volver al modo USB</button>
+    </div>
+    <p id="server-status" role="status"></p>
+  </div>
+</section>
 """
 page = (ROOT / 'templates' / 'index.html').read_text(encoding='utf-8')
 page = page.replace('"/assets/', '"./assets/')
 page = page.replace('</head>', '<link rel="stylesheet" href="./assets/galaxy.css">\n</head>')
 page = page.replace('</header>', '</header>\n' + toolbar, 1)
+page = page.replace('</nav>', server_tab + '\n</nav>\n' + server_panel, 1)
+page = page.replace('<script src="https://unpkg.com/leaflet', '<script src="./assets/browser_serial.js"></script>\n<script src="https://unpkg.com/leaflet', 1)
 page = page.replace('</body>', '<script defer src="./assets/galaxy.js"></script>\n</body>')
 page = page.replace('Comprueba COM y 115200 baudios.', 'Conecta el Pico LoRa o el puerto ST-LINK.')
 PAGES.mkdir(exist_ok=True)

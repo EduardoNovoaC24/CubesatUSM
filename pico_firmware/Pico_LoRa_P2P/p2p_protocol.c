@@ -61,7 +61,17 @@ const char *P2P_ParseCommand(const char *line, size_t n, P2P_Command *out) {
       out->value = WHEEL_CMD_STATUS;
     else if (!strcmp(arg, "DETUMBLE"))
       out->value = WHEEL_CMD_DETUMBLE;
-    else if (!strcmp(arg, "PROFILE_AIR"))
+    else if (!strcmp(arg, "BENCH_ARM"))
+      out->value = WHEEL_CMD_BENCH_ARM;
+    else if (!strcmp(arg, "RESULTS"))
+      out->value = WHEEL_CMD_RESULTS;
+    else if (!strncmp(arg, "RUNS:", 5) && strlen(arg + 5) == 4 &&
+             strspn(arg + 5, "0123456789") == 4) {
+      const unsigned pulse = (unsigned)strtoul(arg + 5, NULL, 10);
+      if (pulse <= 1500U || pulse > 1500U + 5U * P2P_WHEEL_MAX_LEVEL || pulse % 5U)
+        return "BAD_ARGS";
+      out->value = WHEEL_RUNS_BASE + (float)pulse;
+    } else if (!strcmp(arg, "PROFILE_AIR"))
       out->value = WHEEL_CMD_PROFILE_AIR;
     else if (!strcmp(arg, "PROFILE_BIDIR"))
       out->value = WHEEL_CMD_PROFILE_BIDIR;

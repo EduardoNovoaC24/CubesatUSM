@@ -269,7 +269,7 @@
     }
   }
   async function pollPico(){
-    try{const resp=await fetch('/api/pico',{cache:'no-store'});if(!resp.ok)throw Error('HTTP '+resp.status);renderPico(await resp.json());}
+    try{const resp=await (window.stationRequest || fetch)('/api/pico',{cache:'no-store'});if(!resp.ok)throw Error('HTTP '+resp.status);renderPico(await resp.json());}
     catch(e){
       picoState={...picoState,connected:false};
       updateWheelSetpoint();
@@ -297,7 +297,7 @@
     }
     msg.textContent='Enviando solicitud...';
     try{
-      const r=await fetch('/api/pico/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:btn.dataset.cmd,args})});
+      const r=await (window.stationRequest || fetch)('/api/pico/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:btn.dataset.cmd,args})});
       const x=await r.json();if(!r.ok)throw Error(x.error||'No se pudo encolar');
       msg.textContent='#'+x.id+' en cola; esperando respuesta de la STM32 (NO aplicado todavía)';
     }catch(err){msg.textContent='Error: '+err.message;}

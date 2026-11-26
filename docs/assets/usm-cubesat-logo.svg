@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 224" role="img" aria-label="Emblema USM CubeSat Team">
+  <defs>
+    <clipPath id="badge"><circle cx="110.5" cy="122" r="84"/></clipPath>
+    <path id="title" d="M12 76 C46 12 154 1 211 88"/>
+    <path id="star" d="M0-6 1.7-1.7 6 0 1.7 1.7 0 6-1.7 1.7-6 0-1.7-1.7Z"/>
+  </defs>
+  <text fill="#f7a805" font-family="Arial,sans-serif" font-weight="700" font-size="24" textLength="235" lengthAdjust="spacingAndGlyphs"><textPath href="#title" startOffset="50%" text-anchor="middle">USM CUBESAT TEAM</textPath></text>
+  <circle cx="110.5" cy="122" r="93" fill="#f7a90b"/>
+  <g clip-path="url(#badge)">
+    <circle cx="110.5" cy="122" r="84" fill="#0a4c80"/>
+    <g fill="#fff">
+      <use href="#star" transform="translate(57 87) scale(.8)"/>
+      <use href="#star" transform="translate(68 79)"/>
+      <use href="#star" transform="translate(82 68) scale(.83)"/>
+      <use href="#star" transform="translate(111 79) scale(.8)"/>
+      <use href="#star" transform="translate(116 71) scale(.83)"/>
+      <use href="#star" transform="translate(129 56)"/>
+      <use href="#star" transform="translate(138 71) scale(.65)"/>
+      <use href="#star" transform="translate(133 89) scale(.85)"/>
+      <use href="#star" transform="translate(158 61) scale(.45)"/>
+    </g>
+    <path fill="#981621" d="M20 153 61 116 71 123 83 113 94 122 115 101 130 116 151 131 168 127 199 150V216H19Z"/>
+    <path fill="#fff" d="m23 150 38-36 10 7 12-9 11 9 21-21 14 14-9-4 1 8-5-7-2 7-2-8-6 7 2-7-8 9 2-6-9 11-10-7-10 14 2-7-6 7-3-6-8 9 2-6-8 7 3-7-8 7 3-8Z"/>
+    <path fill="#ffc40d" d="M35 176Q67 150 120 128Q77 154 46 188Z"/>
+    <path fill="#d91620" d="M42 204 84 169 91 172 102 161 106 166 130 144 148 163 162 155 190 180 183 219Z"/>
+    <path fill="#fff" d="m58 190 26-22 7 3 10-11 5 4 24-20 18 17 14-6 22 20-15-8 2 6-8-7-2 6-3-7-11 4-12-12 3 7-5-6-2 6-3-7-6 8 1-7-9 7 1-6-9 9-4-4-10 10-7-2Z"/>
+    <g stroke="#080b0d" stroke-width="2.5" stroke-linejoin="round">
+      <path fill="#b8bdba" d="m126 111 12-12 26 1 5 22-15 9-21-1Z"/>
+      <path fill="#d9dfdc" d="m138 99 15 17 11-16-11 16 16 6-18 2 3 7-3-7-18 6 11-13-18-6 18 6Z"/>
+      <path fill="none" d="m132 106 4 18m8-20 2 11m11-12 7 16m-16 1 7 6"/>
+    </g>
+  </g>
+</svg>

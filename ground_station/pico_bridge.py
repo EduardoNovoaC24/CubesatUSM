@@ -434,4 +434,3 @@ class PicoBridge:
                     self.last_error = str(e)[:150]
                     self.log('[USB] '+self.last_error)
                 time.sleep(3)
-

@@ -96,7 +96,9 @@ int main(void) {
   command(&c, "CMD,2,SET_BETA,0.075", 10);
   assert(fabsf(c.config.gain - 0.075f) < 1e-6f);
   command(&c, "CMD,3,SET_MODE,9DOF", 10);
-  assert(strstr(replies[reply_count - 1], "MAG_UNAVAILABLE"));
+  assert(strstr(replies[reply_count - 1], "MAG_UNCALIBRATED"));
+  command(&c, "CMD,32,SET_MODE,9DOF", 260);
+  assert(strstr(replies[reply_count - 1], "MAG_NO_VALID_SAMPLE"));
   command(&c, "CMD,4,CAL_GYRO", 10);
   assert(strstr(replies[reply_count - 1], "OK,STARTED"));
   command(&c, "CMD,5,RESET_FILTER", 10);

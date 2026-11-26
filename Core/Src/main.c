@@ -1369,13 +1369,26 @@ static size_t telemetry_solar(uint8_t *payload, size_t capacity, const Telemetry
     return length > 0 && (size_t)length < capacity - prefix ? prefix + (size_t)length : 0U;
 }
 
-static size_t telemetry_copy(uint8_t *payload, size_t capacity, bool full)
+static size_t telemetry_copy(uint8_t *payload, size_t capacity, bool full, bool eps)
 {
     xSemaphoreTake(telemetryMutexHandle, portMAX_DELAY);
     TelemetrySnapshot_t snapshot = telemetry_snapshot;
     xSemaphoreGive(telemetryMutexHandle);
 
-    if ((SOLAR_TELEMETRY || EPS_UART_TELEMETRY) && full) { return telemetry_solar(payload, capacity, &snapshot); }
+    if (eps) { return telemetry_solar(payload, capacity, &snapshot); }
+    const bool fresh = snapshot.valid && HAL_GetTick() - snapshot.updated_ms <= IMU_SAFETY_TIMEOUT_MS;
+    if (full && fresh && snapshot.full_sample) {
+        const int16_t *a = snapshot.axes;
+        const int16_t *q = snapshot.quaternion;
+        int length = snprintf((char *)payload, capacity,
+            "TEL,%u,%lu,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u|MAGSTAT,%u,%u,%u",
+            (unsigned)snapshot.sequence, (unsigned long)snapshot.updated_ms,
+            a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8],
+            q[0], q[1], q[2], q[3], (unsigned)(snapshot.mag_valid && snapshot.mag_calibrated),
+            (unsigned)snapshot.mag_detected, (unsigned)snapshot.mag_valid,
+            (unsigned)snapshot.mag_calibrated);
+        if (length > 0 && (size_t)length < capacity) { return (size_t)length; }
+    }
     if (WHEEL_BENCH_MODE) {
         if (capacity < P2P_WHEEL_MANEUVER_LEN) { return 0U; }
         WheelTelemetry wheel;
@@ -1391,7 +1404,7 @@ static size_t telemetry_copy(uint8_t *payload, size_t capacity, bool full)
         light_mask = photo_valid_mask;
         light_ms = photo_sample_ms;
         taskEXIT_CRITICAL();
-        const bool valid = snapshot.valid && HAL_GetTick() - snapshot.updated_ms <= IMU_SAFETY_TIMEOUT_MS;
+        const bool valid = fresh;
         const uint16_t rpm = period_ms && HAL_GetTick() - tach_ms < 2000U
                              ? (uint16_t)(60000U / period_ms) : P2P_WHEEL_RPM_UNKNOWN;
         payload[0] = P2P_WHEEL_V1;
@@ -1426,23 +1439,11 @@ static size_t telemetry_copy(uint8_t *payload, size_t capacity, bool full)
         }
         return P2P_WHEEL_MANEUVER_LEN;
     }
-    if (!snapshot.valid || HAL_GetTick() - snapshot.updated_ms > IMU_SAFETY_TIMEOUT_MS) {
+    if (!fresh) {
         return (size_t)snprintf((char *)payload, capacity, "QERR,%s",
                                 snapshot.valid ? "STALE" : "NO_DATA");
     }
 
-    if (full && snapshot.full_sample) {
-        const int16_t *a = snapshot.axes;
-        const int16_t *q = snapshot.quaternion;
-        int length = snprintf((char *)payload, capacity,
-            "TEL,%u,%lu,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u|MAGSTAT,%u,%u,%u",
-            (unsigned)snapshot.sequence, (unsigned long)snapshot.updated_ms,
-            a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8],
-            q[0], q[1], q[2], q[3], (unsigned)(snapshot.mag_valid && snapshot.mag_calibrated),
-            (unsigned)snapshot.mag_detected, (unsigned)snapshot.mag_valid,
-            (unsigned)snapshot.mag_calibrated);
-        if (length > 0 && (size_t)length < capacity) { return (size_t)length; }
-    }
     payload[0] = P2P_QUAT_V1;
     for (size_t i = 0; i < 4U; ++i) {
         uint16_t value = (uint16_t)snapshot.quaternion[i];
@@ -2194,6 +2195,7 @@ void Task_RadioTest(void *argument)
     ADSB_RadioFrame aircraft = {0};
     bool last_telemetry_had_aircraft = false;
     bool last_telemetry_was_full = false;
+    bool next_full_is_eps = false;
     int rssi = -95;
     uint32_t last_link = HAL_GetTick() - 120000U;
     size_t last_telemetry_len = 0U;
@@ -2310,15 +2312,15 @@ void Task_RadioTest(void *argument)
             size_t length = 0U;
             bool send = false;
             bool includes_aircraft = false;
-            const bool full_due = !wheel_ready_pending &&
-                                  (SOLAR_TELEMETRY || EPS_UART_TELEMETRY || !WHEEL_BENCH_MODE) && !last_telemetry_was_full &&
+            const bool full_due = !wheel_ready_pending && !last_telemetry_was_full &&
                                   (int32_t)(now - next_full_telemetry) >= 0;
+            const bool eps_due = full_due && next_full_is_eps;
             if (pending) {
                 length = strlen(response);
                 memcpy(payload, response, length + 1U);
                 send = P2P_BudgetTake(&budget, now, length, true);
             } else if (full_due || (int32_t)(now-next_telemetry) >= 0) {
-                length = telemetry_copy(payload, sizeof(payload), full_due);
+                length = telemetry_copy(payload, sizeof(payload), full_due, eps_due);
                 while (aircraft.line[0] == '\0' ||
                        (int32_t)(now - aircraft.received_ms) >= 30000) {
                     aircraft.line[0] = '\0';
@@ -2342,7 +2344,7 @@ void Task_RadioTest(void *argument)
                 }
             }
             if (send) {
-                if (!pending && full_due && (SOLAR_TELEMETRY || EPS_UART_TELEMETRY)) {
+                if (!pending && eps_due) {
                     uart2_write("[P2P] TX EPS telemetry\r\n");
                 } else if (payload[0] == P2P_WHEEL_V1) {
                     uart2_write("[P2P] TX Q + wheel + light binary\r\n");
@@ -2364,9 +2366,11 @@ void Task_RadioTest(void *argument)
                         if (includes_aircraft) aircraft.line[0] = '\0';
                         last_telemetry_had_aircraft = includes_aircraft;
                         int signal = last_tx - last_link < 120000U ? rssi : -95;
-                        if (full_due) { next_full_telemetry = last_tx + FULL_TELEMETRY_PERIOD_MS; }
-                        last_telemetry_was_full = full_due && (SOLAR_TELEMETRY || EPS_UART_TELEMETRY ||
-                                                               memcmp(payload, "TEL,", 4U) == 0);
+                        if (full_due) {
+                            next_full_telemetry = last_tx + FULL_TELEMETRY_PERIOD_MS;
+                            if (SOLAR_TELEMETRY || EPS_UART_TELEMETRY) { next_full_is_eps = !next_full_is_eps; }
+                        }
+                        last_telemetry_was_full = full_due && (eps_due || memcmp(payload, "TEL,", 4U) == 0);
                         last_telemetry_len = last_telemetry_was_full ?
                             (WHEEL_BENCH_MODE ? P2P_WHEEL_MANEUVER_LEN : P2P_QUAT_V1_LEN) : length;
                         last_telemetry_tx = last_tx;

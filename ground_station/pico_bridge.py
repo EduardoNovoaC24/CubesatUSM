@@ -9,6 +9,7 @@ from collections import deque
 import math
 import queue
 import re
+import secrets
 import threading
 import time
 
@@ -152,7 +153,8 @@ class PicoBridge:
         self.rf = {'rssi': None, 'snr': None, 'freq_error': None}
         self.logs = deque(maxlen=45)
         self.history = deque(maxlen=120)
-        self.next_id = 1
+        # The STM32 keeps recent IDs across browser reloads and USB reconnects.
+        self.next_id = secrets.randbelow(65535) + 1
         self.commands = deque(maxlen=35)
         self.brake_batch = None
         self.relay_command = None

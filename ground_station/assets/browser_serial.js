@@ -36,7 +36,7 @@
       }
       const python = await window.loadPyodide({ indexURL });
       await Promise.all(modules.map(async (name) => {
-        const response = await fetch('./python/' + name);
+        const response = await fetch('./python/' + name, { cache: 'no-store' });
         if (!response.ok) throw new Error('No se pudo cargar ' + name);
         python.FS.writeFile('/home/pyodide/' + name, await response.text());
       }));

@@ -46,7 +46,7 @@
 <body>
 <div id="intro" class="splash" role="dialog" aria-label="Presentación de la estación CubeSat">
   <div class="splash-content">
-    <canvas id="cubesat" role="img" aria-label="CubeSat formado por partículas"></canvas>
+    <img class="splash-logo" src="./assets/usm-cubesat-logo.svg" alt="USM CubeSat Team" width="224" height="224">
     <h2>CubeSat Flight Control</h2>
     <p>ADS-B · Orange Pi Zero LTS · STM32L476RG · SX1262</p>
     <div class="splash-progress"><span></span></div>
@@ -75,7 +75,7 @@
   <button class="tab-btn" data-target="tab-telemetria" aria-selected="false">◈ Telemetría GY-91</button>
   <button class="tab-btn" data-target="tab-control" aria-selected="false">⚙ Calibración y control</button>
   <button class="tab-btn" data-target="tab-graficos" aria-selected="false">▥ Gráficos</button>
-  <button class="tab-btn" data-target="tab-rueda" aria-selected="false">Misión de hoy</button>
+  <button class="tab-btn" data-target="tab-rueda" aria-selected="false">Azimut</button>
   <button class="tab-btn" data-target="tab-solar" aria-selected="false">Paneles solares</button>
 </nav>
 <section class="tab-panel active" id="tab-radar" aria-label="Radar ADS-B">
@@ -118,8 +118,8 @@
   </div>
   <div class="web-card" style="margin-top:16px"><h3>Registro de comandos y respuestas</h3><pre class="console" id="pico-logs">Sin actividad del Pico.</pre></div>
 </section>
-<section class="tab-panel cube-panel" id="tab-rueda" aria-label="Misión de hoy">
-  <div class="panel-head"><div><h2>Misión de hoy</h2><p>Prueba ADCS del CubeSat 3U suspendido</p></div></div>
+<section class="tab-panel cube-panel" id="tab-rueda" aria-label="Azimut">
+  <div class="panel-head"><div><h2>Azimut</h2><p>Prueba ADCS del CubeSat 3U suspendido</p></div></div>
   <div class="dashboard-grid">
     <div class="web-card">
       <h3>Montaje y telemetría</h3>

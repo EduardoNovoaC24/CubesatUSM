@@ -25,9 +25,6 @@ toolbar = """
 page = (ROOT / 'templates' / 'index.html').read_text(encoding='utf-8')
 page = page.replace('"/assets/', '"./assets/')
 page = page.replace('</head>', '<link rel="stylesheet" href="./assets/galaxy.css">\n</head>')
-splash_logo = '<img class="splash-logo" src="./assets/usm-cubesat-logo.svg" alt="USM CubeSat Team" width="224" height="224">'
-assert splash_logo in page
-page = page.replace(splash_logo, '<canvas id="cubesat" role="img" aria-label="CubeSat formado por partículas"></canvas>', 1)
 page = page.replace('</header>', '</header>\n' + toolbar, 1)
 page = page.replace('</body>', '<script defer src="./assets/galaxy.js"></script>\n</body>')
 page = page.replace('Comprueba COM y 115200 baudios.', 'Conecta el Pico LoRa o el puerto ST-LINK.')

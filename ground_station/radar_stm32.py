@@ -31,14 +31,15 @@ WEB_ASSETS = {
     '/assets/usm-cubesat-logo.svg': ('image/svg+xml', (ROOT / 'assets' / 'usm-cubesat-logo.svg').read_bytes()),
     '/assets/cubesat_web.css': ('text/css; charset=utf-8', (ROOT / 'assets' / 'cubesat_web.css').read_bytes()),
     '/assets/cubesat_web.js': ('application/javascript; charset=utf-8', (ROOT / 'assets' / 'cubesat_web.js').read_bytes()),
+    '/assets/adsb_history.js': ('application/javascript; charset=utf-8', (ROOT / 'assets' / 'adsb_history.js').read_bytes()),
 }
-def serial_worker(state: State, port: str, baud: int, ingest_aircraft: bool = True) -> None:
+def serial_worker(state: State, port: str, baud: int, ingest_aircraft: bool = True, label: str = '') -> None:
     import serial  # pyserial installed by user
     while True:
         try:
             state.set_status(f'Conectando a {port}...')
             with serial.Serial(port, baud, timeout=1) as connection:
-                state.set_status(f'Conectado a {port} · {baud} bps')
+                state.set_status(f'Conectado a {label}{port} · {baud} bps')
                 print(f'[UART] Conectado a {port} ({baud} bps)', flush=True)
                 while True:
                     data = connection.readline()
@@ -221,6 +222,7 @@ def make_handler(state: State, pico: PicoBridge, shared=None):
 def main() -> None:
     parser = argparse.ArgumentParser(description='Radar local STM32 ADS-B (COM -> mapa)')
     parser.add_argument('--port', help='Puerto COM ST-LINK, ej. COM15')
+    parser.add_argument('--rp-port', help='Modo RP: puerto del adaptador USB-UART Raspberry Pi')
     parser.add_argument('--baud', type=int, default=115200)
     parser.add_argument('--http-port', type=int, default=8765)
     parser.add_argument('--lan-ip', help='IPv4 privada de este PC para compartir el panel')
@@ -247,23 +249,28 @@ def main() -> None:
         for p in list_ports.comports():
             print(f'{p.device:10} {p.description}')
         return
-    if not args.demo and not (args.port or args.pico_port):
-        parser.error('Indica --port COMxx, --pico-port COMxx o --demo')
+    if not args.demo and not (args.port or args.pico_port or args.rp_port):
+        parser.error('Indica --port COMxx, --rp-port COMxx, --pico-port COMxx o --demo')
     if not args.demo:
         try:
             import serial  # noqa: F401
         except ModuleNotFoundError:
             parser.error('Instala pyserial con: py -m pip install pyserial')
 
-    if args.pico_port and args.pico_port == args.port:
-        parser.error('ST-LINK y Pico deben utilizar puertos serie diferentes')
+    if args.port and args.rp_port:
+        parser.error('Usa --rp-port o --port para elegir el origen serie del radar')
+    if args.pico_port and args.pico_port in (args.port, args.rp_port):
+        parser.error('ADS-B y Pico deben utilizar puertos serie diferentes')
     state = State(demo=args.demo)
-    pico = PicoBridge(args.pico_port, args.pico_baud, None if args.demo else state.ingest)
+    pico = PicoBridge(args.pico_port, args.pico_baud, None if args.demo or args.rp_port else state.ingest)
     if args.pico_port:
         state.set_status(f'ADS-B por LoRa desde {args.pico_port}')
         threading.Thread(target=pico.run, daemon=True).start()
     if args.demo:
         threading.Thread(target=demo_worker, args=(state,), daemon=True).start()
+    elif args.rp_port:
+        threading.Thread(target=serial_worker, args=(state, args.rp_port, 115200, True, 'Modo RP / '),
+                         daemon=True).start()
     elif args.port:
         threading.Thread(target=serial_worker, args=(state, args.port, args.baud, not args.pico_port),
                          daemon=True).start()

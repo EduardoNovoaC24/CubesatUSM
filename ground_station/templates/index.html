@@ -39,6 +39,16 @@
 
 :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#120b0c;color:#fae9ec}
 *{box-sizing:border-box}body{margin:0}header{height:71px;display:flex;align-items:center;justify-content:space-between;padding:0 25px;background:#170e0f;border-bottom:1px solid #421b20}header h1{font-size:18px;letter-spacing:.3px;margin:0}header .subtitle{font-size:11px;color:#c88b93;display:block;margin-top:4px}.brand{display:flex;align-items:center;gap:13px}.logo{width:38px;height:38px;display:grid;place-items:center;background:#451219;border-radius:11px;color:#f36a7e;font-size:23px}.status{font-size:12px;color:#e6c1c6;display:flex;gap:7px;align-items:center;text-align:right}.dot{height:8px;width:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e80;flex-shrink:0}.dot.error{background:#f59e0b;box-shadow:0 0 10px #f59e0b80}.dot.demo{background:#fb923c}main{display:grid;grid-template-columns:minmax(0,1fr) 344px;gap:0;height:calc(100vh - 71px)}.mapwrap{position:relative;min-height:340px}#map{height:100%;width:100%;background:#1e1214}.leaflet-container{font-family:inherit}.leaflet-control-attribution{background:#1b1012d9!important;color:#cf969e!important}.leaflet-control-attribution a{color:#f68e9d!important}.topbar{position:absolute;top:18px;left:18px;right:18px;pointer-events:none;z-index:450;display:flex;flex-wrap:wrap;gap:8px}.stat{border:1px solid #4f232a;background:#1a1011eb;border-radius:11px;padding:10px 15px;backdrop-filter:blur(8px);min-width:110px}.stat label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#c9929a}.stat strong{font-size:25px;font-weight:700}.demo-banner{position:absolute;bottom:37px;left:50%;transform:translateX(-50%);z-index:450;background:#9a3412f0;border-radius:7px;padding:10px 14px;font-size:12px;font-weight:700;white-space:nowrap}.sidebar{background:#170e0f;border-left:1px solid #441c21;min-width:0;overflow-y:auto;display:flex;flex-direction:column}.sidehead{padding:20px 20px 15px;border-bottom:1px solid #431c21}.sidehead h2{font-size:15px;margin:0 0 5px}.sidehead p{font-size:12px;color:#c6929a;margin:0}.planes{padding:10px;flex:1}.plane-row{border:1px solid #482026;background:#201315;border-radius:11px;padding:14px;margin:9px 0;cursor:pointer;transition:background .2s,border-color .2s}.plane-row:hover{background:#45151c;border-color:#bb3d4f}.flight{font-size:17px;font-weight:700;letter-spacing:.3px}.icao{color:#cd9aa2;font-size:11px}.plane-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.plane-data{display:grid;grid-template-columns:1fr 1fr;gap:9px}.plane-data small{color:#cd9aa2;font-size:10px}.plane-data b{font-size:12px;display:block;margin-top:3px;font-weight:600}.tag{font-size:10px;border-radius:5px;padding:4px 6px;background:#441219;color:#e87787}.muted{color:#c8929a}.empty{padding:42px 15px;text-align:center;font-size:13px;line-height:1.6;color:#d1a0a7}.foot{border-top:1px solid #431c21;padding:15px 19px;font-size:11px;line-height:1.5;color:#c6929a}.plane-pin{width:31px;height:31px;display:grid;place-items:center;border-radius:50%;background:#340f14d9;border:1px solid #ee5f73aa;box-shadow:0 0 13px #f0425b65}.plane-pin svg{fill:#f47789;filter:drop-shadow(0 0 2px #ca1d36)}.leaflet-popup-content-wrapper{border-radius:10px;background:#201315;color:#fdecef}.leaflet-popup-tip{background:#201315}.leaflet-popup-content{margin:12px 14px;line-height:1.7}.leaflet-popup-content b{color:#f691a0}@media(max-width:900px){main{grid-template-columns:1fr;grid-template-rows:minmax(380px,60vh) auto;height:auto}.sidebar{min-height:260px}.status{max-width:45%;font-size:10px}header{padding:0 15px}}
+
+.adsb-archive{display:grid;grid-template-columns:minmax(14rem,26%) minmax(0,1fr);gap:18px}
+.adsb-flight-list{max-height:520px;overflow:auto;margin-top:10px;padding:0 4px}
+.adsb-flight-list button{display:block;width:100%;color:inherit;text-align:left}
+.adsb-flight-list button[aria-pressed=true]{border-color:#69d7ef}
+#adsb-replay-map{height:clamp(280px,50vh,580px);background:#171522;border:1px solid #67465d;border-radius:12px}
+.adsb-replay-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.adsb-replay-controls input{flex:1;min-width:100px}
+.adsb-record-link{margin-top:9px}
+@media(max-width:800px){.adsb-archive{grid-template-columns:minmax(0,1fr)}.adsb-flight-list{max-height:230px}}
 </style>
 <link rel="stylesheet" href="/assets/cubesat_web.css">
 </head>
@@ -56,6 +66,7 @@
 <header><div class="brand"><img class="logo" src="/assets/usm-cubesat-logo.svg" alt="" width="48" height="48"><div><h1>CubeSat - Ground Station</h1><span class="subtitle">ADS-B · Orange Pi → STM32L476RG → PC</span></div></div><div class="status"><span id="statusdot" class="dot error"></span><span id="status">Iniciando recepción...</span></div></header>
 <nav class="app-nav" aria-label="Secciones de la estación">
   <button class="tab-btn" data-target="tab-radar" aria-selected="true">✈ Radar ADS-B</button>
+  <button class="tab-btn" data-target="tab-vuelos" aria-selected="false">Registro de vuelos</button>
   <button class="tab-btn" data-target="tab-telemetria" aria-selected="false">◈ Telemetría GY-91</button>
   <button class="tab-btn" data-target="tab-control" aria-selected="false">⚙ Calibración y control</button>
   <button class="tab-btn" data-target="tab-graficos" aria-selected="false">▥ Gráficos</button>
@@ -65,7 +76,7 @@
 <section class="tab-panel active" id="tab-radar" aria-label="Radar ADS-B">
 <main>
 <div class="mapwrap"><div id="map"></div><div class="topbar"><div class="stat"><label>En mapa</label><strong id="mapcount">0</strong></div><div class="stat"><label>Recibidas</label><strong id="total">0</strong></div><div class="stat"><label>Tramas inválidas</label><strong id="invalid">0</strong></div></div><div id="demo-banner" class="demo-banner" style="display:none">MODO SIMULACIÓN — no son aeronaves reales</div></div>
-<aside class="sidebar"><div class="sidehead"><h2>🛫 Aeronaves recibidas por STM32</h2><p>Las posiciones se actualizan desde el puerto COM de ST-LINK</p></div><div id="planes" class="planes"><div class="empty">Esperando mensajes ADS-B...</div></div><div class="foot">Para dibujar un avión, la STM32 debe enviar también latitud y longitud por USART2. Si envía solo ICAO y altitud, la aeronave aparecerá en la lista sin marcador en el mapa.<p id="error"></p>Mapa © OpenStreetMap contributors · Leaflet</div></aside>
+<aside class="sidebar"><div class="sidehead"><h2>🛫 Aeronaves ADS-B</h2><p>Las posiciones se actualizan con los datos de la fuente conectada</p></div><div id="planes" class="planes"><div class="empty">Esperando mensajes ADS-B...</div></div><div class="foot">Para dibujar un avión, la STM32 debe enviar también latitud y longitud por USART2. Si envía solo ICAO y altitud, la aeronave aparecerá en la lista sin marcador en el mapa.<p id="error"></p>Mapa © OpenStreetMap contributors · Leaflet</div></aside>
 </main>
 </section>
 <section class="tab-panel cube-panel" id="tab-telemetria" aria-label="Telemetría GY-91">
@@ -104,6 +115,30 @@
     </div>
   </div>
   <div class="web-card" style="margin-top:16px"><h3>Registro de comandos y respuestas</h3><pre class="console" id="pico-logs">Sin actividad del Pico.</pre></div>
+</section>
+<section class="tab-panel cube-panel" id="tab-vuelos" aria-label="Registro de vuelos ADS-B">
+  <div class="panel-head"><div><h2>Registro de vuelos ADS-B</h2><p>Historial de este navegador. La captura funciona mientras la estaci&oacute;n est&aacute; abierta.</p></div></div>
+  <p id="adsb-storage" role="status"></p>
+  <p id="adsb-gap" role="status"></p>
+  <div class="adsb-archive">
+    <aside>
+      <label><input id="adsb-saved-only" type="checkbox"> Solo guardados</label>
+      <div id="adsb-flights" class="adsb-flight-list">Esperando aeronaves ADS-B.</div>
+    </aside>
+    <div>
+      <h3 id="adsb-flight-title">Selecciona un vuelo</h3>
+      <p id="adsb-flight-caption"></p>
+      <div id="adsb-replay-map" aria-label="Mapa de la trayectoria seleccionada"></div>
+      <p id="adsb-position-note"></p>
+      <div class="adsb-replay-controls">
+        <button type="button" class="cmd-btn" id="adsb-play" disabled>Reproducir</button>
+        <input id="adsb-seek" type="range" min="0" max="1000" value="0" aria-label="Posici&oacute;n en la reproducci&oacute;n" disabled>
+        <button type="button" class="cmd-btn" id="adsb-save" aria-pressed="false" disabled>Guardar vuelo</button>
+        <button type="button" class="cmd-btn" id="adsb-export-flight" disabled>Exportar datos</button>
+      </div>
+      <p id="adsb-replay-data"></p>
+    </div>
+  </div>
 </section>
 <section class="tab-panel cube-panel" id="tab-rueda" aria-label="Azimut">
   <div class="panel-head"><div><h2>Azimut</h2><p>Control de giro del CubeSat 3U suspendido</p></div></div>
@@ -257,12 +292,16 @@
 </section>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/assets/adsb_history.js"></script>
 <script>
-if(!window.L){document.getElementById('planes').textContent='No se pudo cargar Leaflet: revisa la conexión a internet del PC.';} else {
-const map=L.map('map',{zoomControl:false}).setView([-33.45,-70.66],9);window.__radarMap=map;
-L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
-const markers=new Map(); const paths=new Map();let firstAutoZoom=true;
+const map=window.L ? L.map('map',{zoomControl:false}).setView([-33.45,-70.66],9) : null;
+window.__radarMap=map;
+if(map){
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+}
+const markers=new Map();
+let firstAutoZoom=true;
 function esc(v){return String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function headingIcon(heading){let h=Number.isFinite(heading)?heading:0;const plane='<svg style="transform:rotate('+h+'deg)" viewBox="0 0 24 24" width="22" height="22" aria-label="Aeronave"><path d="M12 1.5c.7 0 1.3.7 1.3 1.7V10l8 5v2.1l-8-2.5v4.2l2.7 2.1V22l-4-1.2L8 22v-1.1l2.7-2.1v-4.2l-8 2.5V15l8-5V3.2c0-1 .6-1.7 1.3-1.7z"/></svg>';return L.divIcon({html:'<div class="plane-pin">'+plane+'</div>',className:'',iconSize:[31,31],iconAnchor:[15,15]});}
 function fmt(v,suffix=''){return v===null||v===undefined?'—':esc(v)+suffix;}
@@ -275,32 +314,38 @@ function render(data){
   document.getElementById('error').textContent=data.error||'';
   const locations=data.aircraft.filter(a=>a.lat!==null&&a.lon!==null);
   document.getElementById('mapcount').textContent=locations.length;
-  const seen=new Set();const newLatLngs=[];
-  for(const a of locations){
+  void window.adsbHistory?.record(data,map).catch(console.error);
+  const seen=new Set();
+  for(const a of map ? locations : []){
     seen.add(a.icao);
     const pos=[a.lat,a.lon];
     const content='<b>'+esc(a.flight)+'</b> · '+esc(a.icao)+'<br>Altitud: '+fmt(a.altitude,' ft')+'<br>Velocidad: '+fmt(a.speed,' kt')+'<br>Rumbo: '+fmt(a.heading,'°')+'<br>Posición: '+Number(a.lat).toFixed(5)+', '+Number(a.lon).toFixed(5);
     if(!markers.has(a.icao)){
-      const marker=L.marker(pos,{icon:headingIcon(a.heading)}).addTo(map);marker.bindPopup(content);markers.set(a.icao,marker);newLatLngs.push(pos);
+      const marker=L.marker(pos,{icon:headingIcon(a.heading)}).addTo(map);marker.bindPopup(content);markers.set(a.icao,marker);
     }else{const marker=markers.get(a.icao);marker.setLatLng(pos);marker.setIcon(headingIcon(a.heading));marker.setPopupContent(content);}
-    if(!paths.has(a.icao))paths.set(a.icao,[]);
-    const path=paths.get(a.icao);
-    if(!path.length||Math.abs(path[path.length-1][0]-a.lat)>0.00002||Math.abs(path[path.length-1][1]-a.lon)>0.00002){path.push(pos);if(path.length>40)path.shift();}
+
   }
-  for(const [icao, marker] of markers){if(!seen.has(icao)){map.removeLayer(marker);markers.delete(icao);paths.delete(icao);}}
-  if(firstAutoZoom&&locations.length){map.fitBounds(L.latLngBounds(locations.map(a=>[a.lat,a.lon])).pad(.3),{maxZoom:11});firstAutoZoom=false;}
+  for(const [icao, marker] of markers){if(!seen.has(icao)){map.removeLayer(marker);markers.delete(icao);}}
+  if(map&&firstAutoZoom&&locations.length){map.fitBounds(L.latLngBounds(locations.map(a=>[a.lat,a.lon])).pad(.3),{maxZoom:11});firstAutoZoom=false;}
   const holder=document.getElementById('planes');holder.replaceChildren();
-  if(!data.aircraft.length){const el=document.createElement('div');el.className='empty';el.textContent='Esperando tramas de aeronaves por USART2. Comprueba COM y 115200 baudios.';holder.appendChild(el);}
+  if(!data.aircraft.length){const el=document.createElement('div');el.className='empty';el.textContent='Esperando tramas ADS-B. Comprueba el puerto y los 115200 baudios.';holder.appendChild(el);}
   for(const a of data.aircraft){
     const el=document.createElement('div');el.className='plane-row';el.innerHTML='<div class="plane-title"><div><div class="flight">'+esc(a.flight)+'</div><div class="icao">ICAO: '+esc(a.icao)+'</div></div><span class="tag">'+(a.lat===null?'SIN GPS':'POSICIÓN')+'</span></div><div class="plane-data"><div><small>ALTITUD</small><b>'+fmt(a.altitude,' ft')+'</b></div><div><small>VELOCIDAD</small><b>'+fmt(a.speed,' kt')+'</b></div><div><small>RUMBO</small><b>'+fmt(a.heading,'°')+'</b></div><div><small>ÚLTIMO MENSAJE</small><b>'+Math.round(a.age)+' s</b></div></div>';
-    if(a.lat!==null){el.onclick=()=>{map.flyTo([a.lat,a.lon],Math.max(map.getZoom(),11));markers.get(a.icao)?.openPopup();};}
+    if(map&&a.lat!==null){el.onclick=()=>{map.flyTo([a.lat,a.lon],Math.max(map.getZoom(),11));markers.get(a.icao)?.openPopup();};}
+    if(!data.demo){
+      const history=document.createElement('button');
+      history.type='button';
+      history.className='cmd-btn adsb-record-link';
+      history.textContent='Ver registro';
+      history.onclick=event=>{event.stopPropagation();window.adsbHistory?.open(a,data.stream);};
+      el.appendChild(history);
+    }
     holder.appendChild(el);
   }
 }
-let failCount=0;
-async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());failCount=0;}catch(e){failCount++;document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}}
-setInterval(poll,1000);poll();
-}
+
+async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());}catch(e){document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}finally{setTimeout(poll,1000);}}
+poll();
 </script>
 <script defer src="/assets/cubesat_web.js"></script>
 </body>

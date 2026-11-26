@@ -4,8 +4,9 @@
   const buttons = {
     pico: document.getElementById('usb-pico'),
     adsb: document.getElementById('usb-adsb'),
+    rp: document.getElementById('usb-rp'),
   };
-  const labels = { pico: 'Pico LoRa', adsb: 'ST-LINK ADS-B' };
+  const labels = { pico: 'Pico LoRa', adsb: 'ST-LINK ADS-B', rp: 'Modo RP' };
   const sessions = {};
   const serverTab = document.getElementById('server-tab');
   const prepare = document.getElementById('server-prepare');
@@ -120,7 +121,7 @@
     } finally {
       backend.link_status(source, false, message);
       delete sessions[source];
-      buttons[source].textContent = 'Conectar ' + labels[source];
+      buttons[source].textContent = source === 'rp' ? 'Modo RP · conectar UART' : 'Conectar ' + labels[source];
       buttons[source].disabled = source === 'pico' && serverPrepared;
       notice.textContent = labels[source] + ' · ' + message;
       if (source === 'pico' && !serverPrepared) lockServerTab();
@@ -213,7 +214,9 @@
           }, 1100);
         }
         button.textContent = 'Desconectar ' + labels[source];
-        notice.textContent = labels[source] + ' conectado a 115200 baudios.';
+        notice.textContent = source === 'rp'
+          ? 'Modo RP activo. El radar usa la UART de la Raspberry Pi.'
+          : labels[source] + ' conectado a 115200 baudios.';
         if (source === 'pico') serverTab.disabled = false;
       } catch (error) {
         if (session) await close(source, session, error.message);

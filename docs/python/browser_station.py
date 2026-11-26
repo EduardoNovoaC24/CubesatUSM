@@ -9,10 +9,17 @@ from pico_bridge import PicoBridge
 
 aircraft = State(False)
 aircraft.set_status('Esperando datos ADS-B por LoRa o USB')
+rp = State(False)
+rp_connected = False
 pico = PicoBridge(None, on_aircraft=aircraft.ingest)
 
 
 def link_status(source, connected, detail):
+    global rp_connected
+    if source == 'rp':
+        rp_connected = connected
+        rp.set_status(detail)
+        return
     if source == 'pico':
         if not connected:
             pico._flush_packet()
@@ -28,13 +35,16 @@ def link_status(source, connected, detail):
 def ingest(source, line):
     if source == 'pico':
         pico._parse_line(line)
+    elif source == 'rp':
+        rp.ingest(line)
     else:
         aircraft.ingest(line)
 
 
 def snapshot(source):
     if source == 'aircraft':
-        return json.dumps(aircraft.snapshot(), ensure_ascii=False)
+        state = rp if rp_connected else aircraft
+        return json.dumps(state.snapshot(), ensure_ascii=False)
     if pico.pending_packet and time.monotonic() - pico.packet_at > 0.6:
         pico._flush_packet()
     return json.dumps(pico.snapshot(), ensure_ascii=False)

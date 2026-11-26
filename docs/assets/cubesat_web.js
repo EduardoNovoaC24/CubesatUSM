@@ -121,6 +121,7 @@
     const brake=document.getElementById('spin-brake');
     const connected=picoState.connected&&picoState.capable;
     brake.disabled=!connected;
+    document.getElementById('spin-brake-manual').disabled=!connected;
     document.getElementById('spin-disarm').disabled=!connected;
     document.getElementById('spin-status').textContent=waiting?'Esperando el ACK del STM32.':
       motion&&wheel.state===1?(wheel.spin_seconds==null?'Armando el ESC para frenar el giro manual.':'Armando el ESC.'):

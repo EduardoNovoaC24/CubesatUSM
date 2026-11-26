@@ -1,31 +1,16 @@
-# CubeSat USM
+# Firmware STM32
 
-Proyecto CubeSat del equipo USM. Incluye el OBC STM32 con FreeRTOS, la radio LoRa P2P, el módulo EPS con ESP32, la estación terrestre y los diseños KiCad.
+OBC para STM32L476RG. Integra FreeRTOS, el MPU9250, Fusion AHRS, el control ADCS, SX1262 P2P, ADS-B por USART1 y telemetría EPS por USART3.
 
-## Ramas
+## Compilar
 
-| Rama | Contenido y guía |
-|---|---|
-| [firmware-stm32](../../tree/firmware-stm32) | OBC, ADS-B, IMU, control de actitud y radio SX1262 |
-| [firmware-pico](../../tree/firmware-pico) | Puente Raspberry Pi Pico + SX1262 |
-| [firmware-esp32](../../tree/firmware-esp32) | Telemetría EPS con INA219 |
-| [estacion-lora](../../tree/estacion-lora) | CubeSat - Ground Station y estación local Python |
-| [hardware](../../tree/hardware) | PCB, esquema, montaje, BOM y revisiones |
-| [integracion-adsb](../../tree/integracion-adsb) | Orange Pi, USART1 y radar local |
+1. Importa la carpeta raíz como proyecto existente de STM32CubeIDE.
+2. Revisa la configuración y el pinout de tu placa en `Core/Inc/main.h`, el archivo `.ioc` y [los diseños de hardware](hardware/).
+3. Compila la configuración `Debug` y programa el STM32 mediante ST-LINK.
+4. Para conectar el enlace de radio, utiliza la [guía Pico P2P](pico_firmware/README.md). Para ADS-B, ve [ADSB_ORANGEPI.md](ADSB_ORANGEPI.md).
 
-Las ramas parten de la misma versión integrada. El README de cada rama indica dónde están sus archivos y cómo utilizarlos.
+En un checkout de esta rama, las rutas principales son `Core/`, `Drivers/`, `Middlewares/` y `tests/`.
 
-## Usar la estación LoRa
+## Sesión LoRaWAN local
 
-1. Abre [CubeSat - Ground Station](https://eduardonovoac24.github.io/CubesatUSM/) en Chrome de escritorio.
-2. Conecta el Pico LoRa con un cable USB de datos y cierra cualquier monitor serie que use ese puerto.
-3. Pulsa **Conectar Pico**, selecciona su puerto y espera **radio lista**.
-4. Envía `PING` en **Telecomandos** y comprueba que llegue un `ACK` del STM32.
-
-La conexión P2P utiliza el permiso USB de Chrome. Las credenciales LoRaWAN se configuran únicamente en el firmware local. Consulta la [guía del STM32](guias/firmware-stm32.md).
-
-La [estación Python](guias/estacion-lora.md) incluye el panel de telemetría detallado y el radar ADS-B.
-
-## Reproducir el proyecto
-
-Compila desde los archivos fuente con STM32CubeIDE o Arduino IDE según la rama. Los binarios históricos citados en [las notas anteriores](HISTORIAL_FIRMWARE.md) corresponden a compilaciones locales. Las dependencias incluidas mantienen sus avisos de licencia. Consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Si el equipo necesita el modo LoRaWAN ABP, copia `Core/Inc/lorawan_session.example.h` como `Core/Inc/lorawan_session.local.h`, incorpora el DevAddr y las claves de sesión del equipo, y define `CUBESAT_LORAWAN_LOCAL_CONFIG` en los símbolos del compilador. El archivo local está ignorado por Git. La radio LoRa P2P puede utilizarse sin esa configuración.

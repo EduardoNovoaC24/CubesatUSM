@@ -222,6 +222,11 @@
         <div><small>Error al objetivo</small><b id="turn-error">—</b></div>
       </div>
       <p class="hint" id="turn-status" role="status">Esperando telemetría de la rueda.</p>
+      <h3>Respuesta del frenado</h3>
+      <p class="hint">Velocidad angular Z (&deg;/s) &middot; referencia cero</p>
+      <svg class="chart-area" id="plot-brake-rate" role="img" aria-label="Velocidad angular durante el frenado"></svg>
+      <p class="hint">PWM del ESC (&micro;s) &middot; referencia neutra de 1500 &micro;s</p>
+      <svg class="chart-area" id="plot-brake-pwm" role="img" aria-label="PWM de la rueda durante el frenado"></svg>
       <p id="wheel-command-response" aria-live="polite">Sin órdenes de rueda</p>
       <p id="adcs-sensors">Esperando datos del GY‑91</p>
     </div>

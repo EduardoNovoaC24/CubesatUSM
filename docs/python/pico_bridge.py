@@ -322,7 +322,7 @@ class PicoBridge:
                     self.solar_at = time.monotonic()
                     self.solar_history.append(dict(t=time.time(), voltage=None if saturated else mv / 1000))
                 break
-        adcs = next((re.fullmatch(r'ADCS,(\d),(\d{1,2}),(-?\d{1,5}),(\d{1,4}),(\d{1,3})', record)
+        adcs = next((re.fullmatch(r'ADCS,(\d{1,3}),(\d{1,2}),(-?\d{1,5}),(\d{1,4}),(\d{1,3})', record)
                      for record in records if record.startswith('ADCS,')), None)
         light = next((re.fullmatch(r'LIGHT,(\d{1,2}),(\d{1,4}),(\d{1,4}),(\d{1,4}),(\d{1,4})', record)
                       for record in records if record.startswith('LIGHT,')), None)
@@ -335,17 +335,25 @@ class PicoBridge:
             if wheel:
                 profile, state, pulse, level, rpm = map(int, wheel.groups())
                 if profile <= 2 and state <= 4 and (pulse == 0 or 1000 <= pulse <= 2000) and abs(level) <= 15 and rpm <= 65535:
+                    previous_wheel = self.wheel or {}
                     self.wheel = dict(profile=profile, state=state, pulse=pulse, level=level,
                                       rpm=None if rpm == 65535 else rpm)
                     if adcs:
                         axis, result, rate, elapsed, status = map(int, adcs.groups())
-                        if axis <= 7 and result <= 9 and -32768 <= rate <= 32767 and elapsed <= 6000 and status <= 255:
+                        compact_spin = not light and not maneuver and state == 3 and axis <= 255 and (axis & 0xB8) == 0x80
+                        if (axis <= 7 or compact_spin) and result <= 9 and -32768 <= rate <= 32767 and elapsed <= 6000 and status <= 255:
                             self.wheel.update(axis=axis & 3, inverted=bool(axis & 4), detumble=result,
                                               body_rpm=None if rate == -32768 else rate / 100,
                                               elapsed_s=elapsed / 100, leds=status & 15,
                                               gyro_calibrated=bool(status & 16),
                                               mag_calibrated=bool(status & 32),
                                               mag_valid=bool(status & 64), fusion_9dof=bool(status & 128))
+                            if compact_spin:
+                                self.wheel.update(maneuver=4, spin_result=1 if axis & 0x40 else 0)
+                                if previous_wheel.get('maneuver') == 4:
+                                    for key in ('spin_seconds', 'spin_pwm'):
+                                        if key in previous_wheel:
+                                            self.wheel[key] = previous_wheel[key]
                             if light:
                                 mask, *channels = map(int, light.groups())
                                 if mask <= 15 and all(value <= 4095 for value in channels):

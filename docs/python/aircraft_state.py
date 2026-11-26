@@ -1,9 +1,11 @@
 """Shared ADS-B parsing and radar state."""
 
+from collections import deque
 import math
 import re
 import threading
 import time
+from uuid import uuid4
 
 HEX = re.compile(r'^[0-9A-Fa-f]{6}$')
 LOG_PATTERN = re.compile(
@@ -26,7 +28,15 @@ def parse_aircraft(line: str) -> dict | None:
     """Parse validated protocol frames or debug summaries; ignore other logs."""
     line = line.strip()
     fields = line.split(',')
-    if fields[0] == '$ADSB' and len(fields) == 9 and fields[1] == '1':
+    extra = {}
+    if fields[:2] == ['$ADSB', '2'] and len(fields) == 11:
+        payload = fields[2:9]
+        extra['vertical_rate'] = to_optional_float(fields[9])
+        squawk = fields[10]
+        if squawk and not re.fullmatch(r'[0-7]{4}', squawk):
+            raise ValueError('invalid squawk')
+        extra['squawk'] = squawk or None
+    elif fields[0] == '$ADSB' and len(fields) == 9 and fields[1] == '1':
         payload = fields[2:]
     elif fields[0] in ('@PCADSB', 'PCADSB') and len(fields) == 8:
         payload = fields[1:]
@@ -63,7 +73,7 @@ def parse_aircraft(line: str) -> dict | None:
         'altitude': round(alt) if alt is not None else None,
         'speed': round(speed) if speed is not None else None,
         'heading': round(heading) % 360 if heading is not None else None,
-        'lat': lat, 'lon': lon,
+        'lat': lat, 'lon': lon, **extra,
     }
 
 
@@ -72,6 +82,8 @@ class State:
         self.lock = threading.Lock()
         self.aircraft: dict[str, dict] = {}
         self.total = 0
+        self.stream = uuid4().hex
+        self.recent = deque(maxlen=512)
         self.invalid = 0
         self.status = 'SIMULACIÓN' if demo else 'Iniciando puerto serie'
         self.last_error = ''
@@ -88,6 +100,8 @@ class State:
             return
         now = time.time()
         with self.lock:
+            self.total += 1
+            self.recent.append(dict(aircraft, seq=self.total, t=now))
             existing = self.aircraft.get(aircraft['icao'])
             # No perder posiciones antiguas ante mensajes parciales (pero expiran).
             if existing and aircraft['lat'] is None and now - existing['position_at'] < 20:
@@ -98,7 +112,6 @@ class State:
             aircraft['updated_at'] = now
             aircraft['message_count'] = 1 + (existing['message_count'] if existing else 0)
             self.aircraft[aircraft['icao']] = aircraft
-            self.total += 1
 
     def snapshot(self) -> dict:
         now = time.time()
@@ -120,6 +133,8 @@ class State:
                 'total': self.total,
                 'invalid': self.invalid,
                 'aircraft': sorted(items, key=lambda a: a['age']),
+                'stream': self.stream,
+                'observations': list(self.recent),
             }
 
     def set_status(self, status: str, error: str = '') -> None:

@@ -1342,11 +1342,14 @@ static size_t telemetry_solar(uint8_t *payload, size_t capacity, const Telemetry
     taskEXIT_CRITICAL();
     unsigned saturated = 0U;
     unsigned long mv[EPS_ADC_CHANNELS] = {0};
-    const uint64_t denominator = (uint64_t)P2P_LIGHT_MAX * SOLAR_R_BOTTOM_OHM;
+    /* PV3 reports the voltage at PC4/PC2/PC3 directly, with no divider. */
+    const uint64_t denominator = EPS_UART_TELEMETRY ? P2P_LIGHT_MAX :
+                                 (uint64_t)P2P_LIGHT_MAX * SOLAR_R_BOTTOM_OHM;
+    const uint64_t scale_mv = EPS_UART_TELEMETRY ? SOLAR_ADC_REF_MV :
+        (uint64_t)SOLAR_ADC_REF_MV * ((uint64_t)SOLAR_R_TOP_OHM + SOLAR_R_BOTTOM_OHM);
     for (unsigned i = 0; i < EPS_ADC_CHANNELS; ++i) {
         if (!(valid & (1U << i))) { continue; }
-        const uint64_t numerator = (uint64_t)raw[i] * SOLAR_ADC_REF_MV *
-                                   ((uint64_t)SOLAR_R_TOP_OHM + SOLAR_R_BOTTOM_OHM);
+        const uint64_t numerator = (uint64_t)raw[i] * scale_mv;
         mv[i] = (unsigned long)((numerator + denominator / 2U) / denominator);
         if (raw[i] >= 4090U) { saturated |= 1U << i; }
     }
@@ -1722,9 +1725,14 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                     timed_direction = direction;
                     timed_direction_at = now;
                 }
-                if (!settled && direction && now - timed_direction_at >= 120U && now - ramp_at >= 200U) {
+                /* Change PWM steadily at high rates and allow the ESC more time
+                 * to respond near rest before applying another correction. */
+                const float speed = fabsf(timed_filtered_rate);
+                const uint32_t correction_ms = speed >= 15.0f ? 150U : speed >= 3.0f ? 250U : 400U;
+                if (!settled && fabsf(rate) > 0.5f && rate * timed_filtered_rate > 0.0f &&
+                    direction && now - timed_direction_at >= 120U && now - ramp_at >= correction_ms) {
                     ramp_at = now;
-                    const int level = wheel->level + direction * (fabsf(timed_filtered_rate) >= 30.0f ? 2 : 1);
+                    const int level = wheel->level + direction;
                     if (level > P2P_WHEEL_MAX_LEVEL) { wheel->level = P2P_WHEEL_MAX_LEVEL; }
                     else if (level < -P2P_WHEEL_MAX_LEVEL) { wheel->level = -P2P_WHEEL_MAX_LEVEL; }
                     else { wheel->level = (int8_t)level; }
@@ -1732,8 +1740,11 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             } else if (!settled && now - ramp_at >= 200U) {
                 ramp_at = now;
                 /* Constant body rate in cruise, reducing it as the target approaches. */
-                const float desired = braking || fabsf(error) <= tolerance ? 0.0f :
-                                      fminf(12.0f, fabsf(error) * 0.8f) * copysignf(1.0f, error);
+                const float remaining = fabsf(error);
+                const float approach = wheel->maneuver == WHEEL_MANEUVER_TURN && error * rate > 0.0f
+                                       ? fmaxf(0.0f, remaining - 0.35f * fabsf(rate)) : remaining;
+                const float desired = braking || remaining <= tolerance ? 0.0f :
+                                      fminf(12.0f, approach * 0.8f) * copysignf(1.0f, error);
                 const float rate_error = rate - desired;
                 if (fabsf(rate_error) > 0.5f) {
                     cruise_period = 0U;
@@ -1991,6 +2002,8 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             } else {
                 wheel->maneuver = braking ? WHEEL_MANEUVER_BRAKE :
                                   tracking ? WHEEL_MANEUVER_LIGHT : WHEEL_MANEUVER_TURN;
+                batch.armed = false;
+                wheel->elapsed_cs = 0U;
                 initial_speed = fabsf(rate);
                 rotation = 0.0f;
                 previous_rate = rate;

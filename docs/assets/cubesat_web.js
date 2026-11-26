@@ -152,8 +152,7 @@
     const active=fresh&&wheel.maneuver===2&&wheel.detumble===1;
     const turn=fresh&&wheel.maneuver===2&&wheel.target_deg===180;
     const ready=available&&wheel.state===2&&wheel.profile===2;
-    document.getElementById('turn-arm').disabled=waiting||!available||
-      wheel.state!==0||Math.abs(wheel.body_rpm)>0.08;
+    document.getElementById('turn-arm').disabled=!picoState.connected||!picoState.capable;
     document.getElementById('turn-start').disabled=waiting||!ready||Math.abs(wheel.body_rpm)>0.33;
     document.getElementById('turn-angle').textContent=turn?fmt(wheel.rotation_deg,'°',1):'—';
     document.getElementById('turn-error').textContent=turn&&Number.isFinite(wheel.rotation_deg)?
@@ -420,7 +419,7 @@
     }else if(btn.dataset.prefix==='AXIS_'){
       args=['AXIS_'+args[0]];
     }
-    const turnRequest=btn.id==='turn-arm'||btn.id==='turn-start'||btn.id==='light-follow';
+    const turnRequest=btn.id==='turn-start'||btn.id==='light-follow';
     if(turnRequest){
       if(turnRequestInFlight||turnCommandId!==undefined)return;
       turnRequestInFlight=true;

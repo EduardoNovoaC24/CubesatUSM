@@ -21,6 +21,9 @@
     }
   });
   let picoState={capable:false,connected:false};
+  let benchStartId, resultsId;
+  let benchWatch=false;
+  let resultsAt=0;
   const lanKey=document.getElementById('lan-key');
   const lanOperator=document.getElementById('lan-operator');
   const lanStatus=document.getElementById('lan-status');
@@ -54,8 +57,9 @@
     const ready=fresh&&wheel.state===2;
     const seconds=ready?Math.max(0,Math.ceil(wheelReadyWindow-(wheel.elapsed_s??0)-age)):0;
     const manualRunning=fresh&&wheel.state===3&&![1,2].includes(wheel.detumble);
-    wheelSetpoint.disabled=!(seconds>0||manualRunning);
-    wheelCountdown.hidden=!ready;
+    const benchArmed=picoState.brake_batch?.armed;
+    wheelSetpoint.disabled=benchArmed||!(seconds>0||manualRunning);
+    wheelCountdown.hidden=!ready||benchArmed;
     wheelCountdown.textContent=seconds>0
       ? 'Lista. Tiempo estimado para aplicar el nivel '+seconds+' s.'
       : 'Plazo vencido. Espera a que la rueda vuelva a Desarmada.';
@@ -100,6 +104,55 @@
       flush();
     }
     add('text',{x:526,y:210,'text-anchor':'end',fill:'#b97a83','font-size':11},'Últimos '+Math.round(dt)+' s');
+  }
+  function renderBrakeBatch(batch, wheelReady) {
+    const seconds=batch?.seconds||[];
+    const states=['Sin tanda','Acelerando','Frenando con el giroscopio','Preparando la siguiente repetición','Tanda completa','Tanda interrumpida'];
+    const errors=['','Cancelada','Giro no válido','Se perdió el enlace','El PWM no produjo un giro medible','El frenado no se estabilizó','El montaje no volvió al reposo inicial'];
+    if(batch)document.getElementById('adcs-result').textContent=
+      states[batch.phase]+(batch.pulse?' · '+batch.pulse+' µs':'')+(batch.error?' · '+errors[batch.error]:'');
+    document.getElementById('brake-count').textContent=seconds.length+' / 20';
+    document.getElementById('brake-best').textContent=seconds.length?Math.min(...seconds).toFixed(2)+' s':'—';
+    document.querySelector('[data-prefix="RUNS"]').disabled=!(wheelReady&&batch?.armed&&!(batch.phase>=1&&batch.phase<=3));
+    const svg=document.getElementById('plot-brake');
+    svg.replaceChildren();
+    svg.setAttribute('viewBox','0 0 580 216');
+    const add=(name,attrs,text)=>{
+      const item=document.createElementNS('http://www.w3.org/2000/svg',name);
+      for(const [key,value] of Object.entries(attrs))item.setAttribute(key,value);
+      if(text!==undefined)item.textContent=text;
+      svg.append(item);
+    };
+    if(!seconds.length){
+      add('text',{x:290,y:112,'text-anchor':'middle',fill:'currentColor','font-size':14},'Esperando mediciones');
+      return;
+    }
+    const max=Math.max(1,...seconds)*1.08;
+    for(let i=0;i<=4;i++){
+      const y=180-i*39;
+      add('line',{x1:41,y1:y,x2:572,y2:y,stroke:'var(--line)','stroke-width':1});
+      add('text',{x:37,y:y+4,'text-anchor':'end',fill:'currentColor','font-size':11},(max*i/4).toFixed(1));
+    }
+    const best=Math.min(...seconds);
+    for(let i=0;i<20;i++){
+      const x=44+i*26.3;
+      if(i<seconds.length){
+        const height=Math.max(2,156*seconds[i]/max);
+        add('rect',{x,y:180-height,width:20,height,rx:3,fill:seconds[i]===best?'var(--lime)':'var(--aqua)'});
+      }
+      if(i===0||i%5===4)add('text',{x:x+10,y:198,'text-anchor':'middle',fill:'currentColor','font-size':11},i+1);
+    }
+    add('text',{x:41,y:14,fill:'currentColor','font-size':11},'Tiempo (s)');
+  }
+  async function pollBrakeBatch(){
+    if(!benchWatch||!picoState.connected||!picoState.capable||
+      (lanKey&&!lanKey.value.trim())||performance.now()-resultsAt<7500)return;
+    resultsAt=performance.now();
+    try{
+      const response=await (window.stationRequest||fetch)('/api/pico/command',
+        commandRequest({command:'WHEEL',args:['RESULTS']}));
+      if(response.ok)resultsId=(await response.json()).id;
+    }catch{ /* The firmware stops if it loses RF traffic. */ }
   }
   const chartDefs=[['plot-q',['q0','q1','q2','q3'],['#f47588','#4de7ae','#ffd37d','#c7a3ff']],
                    ['plot-norm',['norm'],['#4fe5c0']],
@@ -267,7 +320,26 @@
     document.querySelector('[data-prefix="AXIS_"]').disabled=!wheelIdle;
     const maneuverReady=adcsFresh&&wheel.profile===2&&wheel.state===2&&wheel.axis<3&&
       Number.isFinite(wheel.body_rpm);
-    document.querySelector('[data-value="DETUMBLE"]').disabled=!maneuverReady;
+    const bench= data.brake_batch;
+    const benchCommand=data.commands?.find(cmd=>cmd.id===benchStartId);
+    if(benchCommand?.state==='OK'){
+      benchStartId=undefined;
+      benchWatch=true;
+      resultsAt=-Infinity;
+    }else if(benchCommand && ['ERR','PICO ERR','SIN CONFIRMACIÓN'].includes(benchCommand.state)){
+      benchStartId=undefined;
+    }
+    const report=data.commands?.find(cmd=>cmd.id===resultsId);
+    if(report?.state==='OK'){
+      resultsId=undefined;
+      if(!bench?.armed)benchWatch=false;
+    }
+    document.querySelectorAll('[data-value="BENCH_ARM"]').forEach(btn=>{
+      btn.disabled=!(adcsFresh&&wheel.axis<3&&wheel.gyro_calibrated&&
+        (wheelIdle||maneuverReady&&bench?.armed));
+    });
+    renderBrakeBatch(bench,maneuverReady);
+    void pollBrakeBatch();
     document.querySelector('[data-prefix="TURN"]').disabled=!maneuverReady||Math.abs(wheel.body_rpm)>0.34;
     document.querySelector('[data-prefix="LIGHT"]').disabled=!maneuverReady||wheel.axis!==2||Math.abs(wheel.body_rpm)>0.34;
     document.getElementById('maneuver-turn').textContent=adcsFresh&&wheel.maneuver===2?
@@ -275,7 +347,7 @@
     document.getElementById('maneuver-reference').textContent=adcsFresh?fmt(wheel.reference_deg,'°',1):'—';
     document.getElementById('maneuver-light').textContent=adcsFresh?fmt(wheel.light_azimuth_deg,'°',1):'—';
     document.getElementById('adcs-export').disabled=!data.adcs_history?.length;
-    const wheelCmd=(data.commands||[]).filter(cmd=>cmd.name==='WHEEL').at(-1);
+    const wheelCmd=(data.commands||[]).filter(cmd=>cmd.name==='WHEEL'&&!cmd.detail.startsWith('BRAKE,')).at(-1);
     if(wheelCmd)document.getElementById('wheel-command-response').textContent=
       '#'+wheelCmd.id+' '+wheelCmd.state+' · '+wheelCmd.detail;
     const calCmd=(data.commands||[]).filter(cmd=>['CAL_GYRO','MAG_START','MAG_STOP','SET_MODE'].includes(cmd.name)).at(-1);
@@ -328,6 +400,7 @@
     try{
       const r=await (window.stationRequest || fetch)('/api/pico/command',commandRequest({command:btn.dataset.cmd,args}));
       const x=await r.json();if(!r.ok)throw Error(x.error||'No se pudo encolar');
+      if(btn.dataset.value==='BENCH_ARM'||btn.dataset.prefix==='RUNS')benchStartId=x.id;
       msg.textContent='#'+x.id+' en cola; esperando respuesta de la STM32 (NO aplicado todavía)';
     }catch(err){
       msg.textContent='Error: '+err.message;

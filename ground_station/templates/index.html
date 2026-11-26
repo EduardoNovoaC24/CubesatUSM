@@ -94,9 +94,11 @@
       <div class="control-row"><label for="beta">Beta</label><input id="beta" type="number" min="0.001" max="2" step="0.005" value="0.1"><button class="cmd-btn" data-cmd="SET_BETA" data-arg="beta" disabled>Aplicar β</button></div>
       <div class="control-row"><label for="mode">Fusión</label><select id="mode"><option>6DOF</option><option>9DOF</option></select><button class="cmd-btn" data-cmd="SET_MODE" data-arg="mode" disabled>Aplicar</button></div>
       <div class="control-row"><label for="rate">Tasa</label><input id="rate" type="number" min="1" max="10" value="2"><button class="cmd-btn" data-cmd="SET_RATE" data-arg="rate" disabled>Aplicar Hz</button></div>
-      <h3 style="margin-top:20px">Calibraciones y memoria</h3>
-      <div class="command-grid"><button class="cmd-btn danger" data-cmd="CAL_GYRO" data-confirm="true" disabled>Calibrar giroscopio</button><button class="cmd-btn danger" data-cmd="CAL_ACCEL" data-confirm="true" disabled>Calibrar acelerómetro</button><button class="cmd-btn danger" data-cmd="MAG_START" data-confirm="true" disabled>Iniciar MAG</button><button class="cmd-btn danger" data-cmd="MAG_STOP" data-confirm="true" disabled>Finalizar MAG</button><button class="cmd-btn danger" data-cmd="RESET_FILTER" data-confirm="true" disabled>Reiniciar filtro</button><button class="cmd-btn danger" data-cmd="SAVE_CONFIG" data-confirm="true" disabled>Guardar FLASH</button><button class="cmd-btn danger" data-cmd="LOAD_CONFIG" data-confirm="true" disabled>Cargar FLASH</button></div>
-      <p class="hint">Para calibrar el giroscopio, deja el CubeSat quieto sobre una superficie firme durante 4 segundos.</p>
+      <details style="margin-top:20px">
+        <summary>Calibración avanzada y memoria</summary>
+        <p class="hint">Al arrancar, el STM32 recupera la calibración guardada o espera a que el CubeSat esté quieto para calibrar el giroscopio. Activa 9DOF cuando hay calibración magnética y lecturas válidas.</p>
+        <div class="command-grid"><button class="cmd-btn danger" data-cmd="CAL_GYRO" data-confirm="true" disabled>Recalibrar giroscopio</button><button class="cmd-btn danger" data-cmd="CAL_ACCEL" data-confirm="true" disabled>Calibrar acelerómetro</button><button class="cmd-btn danger" data-cmd="MAG_START" data-confirm="true" disabled>Iniciar MAG</button><button class="cmd-btn danger" data-cmd="MAG_STOP" data-confirm="true" disabled>Finalizar MAG</button><button class="cmd-btn danger" data-cmd="RESET_FILTER" data-confirm="true" disabled>Reiniciar filtro</button><button class="cmd-btn danger" data-cmd="SAVE_CONFIG" data-confirm="true" disabled>Guardar FLASH</button><button class="cmd-btn danger" data-cmd="LOAD_CONFIG" data-confirm="true" disabled>Cargar FLASH</button></div>
+      </details>
       <p class="hint" id="command-response" aria-live="polite">Última orden: —</p>
     </div>
   </div>
@@ -235,13 +237,7 @@
       </section>
       <h3>Calibración del GY‑91</h3>
       <p id="adcs-sensors">Esperando datos del GY‑91</p>
-      <div class="command-grid">
-        <button class="cmd-btn" data-adcs-cal data-cmd="CAL_GYRO" data-confirm="true" disabled>Calibrar giroscopio</button>
-        <button class="cmd-btn" data-adcs-cal data-cmd="MAG_START" data-confirm="true" disabled>Iniciar calibración magnética</button>
-        <button class="cmd-btn" data-adcs-cal data-cmd="MAG_STOP" disabled>Finalizar calibración</button>
-        <button class="cmd-btn" data-adcs-cal data-cmd="SET_MODE" data-value="9DOF" disabled>Activar fusión 9DOF</button>
-      </div>
-      <p id="adcs-cal-response" aria-live="polite">Sin órdenes de calibración</p>
+      <p class="hint">Los controles manuales están en Calibración y control.</p>
     </div>
   </div>
 </section>

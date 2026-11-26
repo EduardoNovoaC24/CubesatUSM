@@ -1485,6 +1485,42 @@ static void wheel_reply(uint16_t id, bool ok, const char *detail)
     (void)p2p_emit(line);
 }
 
+enum { BRAKE_IDLE, BRAKE_SPIN, BRAKE_CONTROL, BRAKE_RECOVER, BRAKE_FINISHED, BRAKE_ABORTED };
+enum { BRAKE_ERROR_NONE, BRAKE_ERROR_STOP, BRAKE_ERROR_IMU, BRAKE_ERROR_LINK,
+       BRAKE_ERROR_NO_MOTION, BRAKE_ERROR_CONTROL, BRAKE_ERROR_RECOVERY };
+
+typedef struct {
+    bool armed;
+    unsigned stage, error, count, pulse;
+    uint32_t phase_at, steady_at;
+    uint16_t times[P2P_BRAKE_TRIALS];
+} WheelBrakeBatch;
+
+static bool wheel_batch_active(const WheelBrakeBatch *batch)
+{
+    return batch->stage >= BRAKE_SPIN && batch->stage <= BRAKE_RECOVER;
+}
+
+static void wheel_batch_stop(WheelBrakeBatch *batch, unsigned error)
+{
+    batch->armed = false;
+    if (wheel_batch_active(batch)) {
+        batch->stage = BRAKE_ABORTED;
+        batch->error = error;
+    }
+}
+
+static void wheel_batch_report(uint16_t id, const WheelBrakeBatch *batch)
+{
+    char response[P2P_RF_MAX + 1U] = {0};
+    size_t used = (size_t)snprintf(response, sizeof(response), "ACK,%u,OK,BRAKE,%u,%u,%u,%u",
+                                  id, batch->pulse, batch->stage, batch->error, (unsigned)batch->armed);
+    for (unsigned i = 0; i < batch->count; ++i) {
+        used += (size_t)snprintf(response + used, sizeof(response) - used, ",%u", (unsigned)batch->times[i]);
+    }
+    (void)xQueueSend(p2pResponseQueueHandle, response, 0U);
+}
+
 static BaseType_t wheel_enqueue(const P2P_Command *command)
 {
     if ((int)command->value == WHEEL_CMD_STOP) {
@@ -1526,6 +1562,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     static uint32_t cruise_period;
     static int cruise_level;
     static bool below;
+    static WheelBrakeBatch batch;
     float rate = 0.0f;
     bool rate_ok;
     taskENTER_CRITICAL();
@@ -1535,6 +1572,38 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     rate_ok = rate_ok && isfinite(rate);
     const bool link_ok = wheel_link_seen && now - wheel_link_ms < 25000U;
     wheel->body_crpm = rate_ok ? clamp_float_to_i16(rate * (100.0f / 6.0f)) : INT16_MIN;
+    if (batch.armed && (!link_ok || !rate_ok || imu_stale || fabsf(rate) >= 475.0f)) {
+        wheel_batch_stop(&batch, link_ok ? BRAKE_ERROR_IMU : BRAKE_ERROR_LINK);
+        if (wheel->detumble == DETUMBLE_ACTIVE) {
+            wheel->detumble = link_ok ? DETUMBLE_IMU : DETUMBLE_LINK_LOST;
+        }
+        wheel_stop(wheel, phase_at, now);
+    }
+    if (batch.stage == BRAKE_SPIN) {
+        if (wheel->pulse == batch.pulse) {
+            if (!batch.steady_at) { batch.steady_at = now; }
+            if (now - batch.steady_at >= 2000U) {
+                if (fabsf(rate) <= 0.5f) {
+                    wheel_batch_stop(&batch, BRAKE_ERROR_NO_MOTION);
+                    wheel_stop(wheel, phase_at, now);
+                } else {
+                    batch.stage = BRAKE_CONTROL;
+                    wheel->maneuver = WHEEL_MANEUVER_BRAKE;
+                    wheel->detumble = DETUMBLE_ACTIVE;
+                    initial_speed = fabsf(rate);
+                    detumble_at = integrated_at = now;
+                    ramp_at = now - 200U;
+                    below = false;
+                }
+            }
+        } else {
+            batch.steady_at = 0U;
+            if (now - batch.phase_at >= 6000U) {
+                wheel_batch_stop(&batch, BRAKE_ERROR_CONTROL);
+                wheel_stop(wheel, phase_at, now);
+            }
+        }
+    }
     if (wheel->detumble == DETUMBLE_ACTIVE) {
         const uint32_t elapsed = now - detumble_at;
         const bool braking = wheel->maneuver == WHEEL_MANEUVER_BRAKE;
@@ -1559,6 +1628,7 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                               DETUMBLE_LIMIT : DETUMBLE_TIMEOUT;
         }
         if (wheel->detumble != DETUMBLE_ACTIVE) {
+            if (batch.stage == BRAKE_CONTROL) { wheel_batch_stop(&batch, BRAKE_ERROR_CONTROL); }
             wheel_stop(wheel, phase_at, now);
         } else {
             if (!braking) {
@@ -1580,6 +1650,19 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                     wheel->elapsed_cs = (uint16_t)((below_at - detumble_at) / 10U);
                     wheel->detumble = DETUMBLE_DONE;
                     completed_at = now;
+                    if (batch.stage == BRAKE_CONTROL) {
+                        batch.times[batch.count++] = wheel->elapsed_cs;
+                        if (batch.count == P2P_BRAKE_TRIALS) {
+                            batch.stage = BRAKE_FINISHED;
+                            batch.armed = false;
+                            wheel_stop(wheel, phase_at, now);
+                        } else {
+                            batch.stage = BRAKE_RECOVER;
+                            batch.phase_at = now;
+                            batch.steady_at = 0U;
+                            wheel->level = 0;
+                        }
+                    }
                 }
             } else {
                 below = false;
@@ -1621,13 +1704,37 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
             }
         }
     }
+    if (batch.stage == BRAKE_RECOVER) {
+        uint32_t tach_at, tach_period;
+        taskENTER_CRITICAL();
+        tach_at = wheel_tach_ms;
+        tach_period = wheel_tach_period_ms;
+        taskEXIT_CRITICAL();
+        const bool spinning = tach_period && tach_period < 500U && now - tach_at < 2000U;
+        if (now - batch.phase_at >= 20000U) {
+            wheel_batch_stop(&batch, BRAKE_ERROR_RECOVERY);
+            wheel_stop(wheel, phase_at, now);
+        } else if (wheel->pulse != wheel_neutral(wheel->profile) || fabsf(rate) > 0.5f || spinning) {
+            batch.steady_at = 0U;
+        } else {
+            if (!batch.steady_at) { batch.steady_at = now; }
+            if (now - batch.steady_at >= 2000U) {
+                batch.stage = BRAKE_SPIN;
+                batch.phase_at = now;
+                batch.steady_at = 0U;
+                wheel->detumble = DETUMBLE_NONE;
+                wheel->level = (int8_t)((batch.pulse - 1500U) / 5U);
+            }
+        }
+    }
     const bool result_hold = wheel->detumble == DETUMBLE_DONE && wheel->state == WHEEL_RUNNING;
-    if (result_hold && (now - completed_at >= 5000U || !rate_ok)) { wheel_stop(wheel, phase_at, now); }
+    if (result_hold && !wheel_batch_active(&batch) &&
+        (now - completed_at >= 5000U || !rate_ok)) { wheel_stop(wheel, phase_at, now); }
     if (*enabled && now - *enabled_at >= 30000U) { *enabled = false; }
     if (imu_stale ||
-        (wheel->state == WHEEL_READY && now - *phase_at >= WHEEL_READY_WINDOW_MS) ||
+        (wheel->state == WHEEL_READY && !batch.armed && now - *phase_at >= WHEEL_READY_WINDOW_MS) ||
         (wheel->state == WHEEL_RUNNING && wheel->detumble != DETUMBLE_ACTIVE &&
-         !result_hold && now - *phase_at >= 8000U)) {
+         !result_hold && !wheel_batch_active(&batch) && now - *phase_at >= 8000U)) {
         *enabled = false;
         wheel_stop(wheel, phase_at, now);
     }
@@ -1637,8 +1744,9 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     }
     /* The ADCS elapsed field carries time in READY while no test is running. */
     if (wheel->state == WHEEL_READY) {
-        wheel->ready_elapsed_cs = (uint16_t)((now - *phase_at) / 10U);
+        wheel->ready_elapsed_cs = batch.armed ? 0U : (uint16_t)((now - *phase_at) / 10U);
     }
+    if (wheel->state == WHEEL_STOPPING) { batch.armed = false; }
     if (wheel->state == WHEEL_STOPPING && now - *phase_at >= 5000U) {
         wheel->state = WHEEL_IDLE;
         wheel->pulse = 0U;
@@ -1654,21 +1762,59 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
     } else {
         received = xQueueReceive(wheel_commands, &command, 0U);
     }
+    if (received == pdPASS && (int)command.value == WHEEL_CMD_RESULTS) {
+        if (command.id) { wheel_batch_report(command.id, &batch); }
+        received = pdFALSE;
+    }
     if (received == pdPASS) {
         const int action = (int)command.value;
         const char *error = NULL;
         const char *detail = "WHEEL_STATUS_IN_TELEMETRY";
         if (action == WHEEL_CMD_STOP) {
             *enabled = false;
+            wheel_batch_stop(&batch, BRAKE_ERROR_STOP);
             if (wheel->detumble == DETUMBLE_ACTIVE) { wheel->detumble = DETUMBLE_STOPPED; }
             wheel_stop(wheel, phase_at, now);
             detail = "WHEEL_STOP_REQUEST_APPLIED";
         } else if (command.id == 0 && action == WHEEL_CMD_PROFILE_OFF) {
             *enabled = false;
+            wheel_batch_stop(&batch, BRAKE_ERROR_STOP);
             wheel_stop(wheel, phase_at, now);
             if (wheel->detumble == DETUMBLE_ACTIVE) { wheel->detumble = DETUMBLE_STOPPED; }
             if (wheel->state == WHEEL_IDLE) { wheel->profile = WHEEL_PROFILE_NONE; }
             else { error = "WAIT_FOR_STOP"; }
+        } else if (action == WHEEL_CMD_BENCH_ARM) {
+            if (batch.armed && wheel->state == WHEEL_READY) {
+                detail = "BENCH_READY";
+            } else if (wheel->state != WHEEL_IDLE || !link_ok || !rate_ok ||
+                       imu_stale || fabsf(rate) > 0.5f) {
+                error = "CHECK_IDLE_LINK_AXIS_GYRO";
+            } else {
+                *enabled = false;
+                batch.armed = true;
+                wheel->profile = WHEEL_PROFILE_BIDIR;
+                wheel->detumble = DETUMBLE_NONE;
+                wheel->maneuver = WHEEL_MANEUVER_NONE;
+                wheel->state = WHEEL_ARMING;
+                wheel->pulse = wheel_neutral(wheel->profile);
+                *phase_at = now;
+                detail = "BENCH_ARMING";
+            }
+        } else if (action > WHEEL_RUNS_BASE) {
+            if (!batch.armed || wheel->state != WHEEL_READY || !link_ok || !rate_ok || fabsf(rate) > 0.5f) {
+                error = "BENCH_ARM_AND_REST_REQUIRED";
+            } else {
+                batch = (WheelBrakeBatch){ .armed = true, .stage = BRAKE_SPIN,
+                    .pulse = (unsigned)(action - WHEEL_RUNS_BASE), .phase_at = now };
+                wheel->detumble = DETUMBLE_NONE;
+                wheel->maneuver = WHEEL_MANEUVER_BRAKE;
+                wheel->state = WHEEL_RUNNING;
+                wheel->level = (int8_t)((batch.pulse - 1500U) / 5U);
+                last_step_at = now;
+                detail = "BRAKE_BATCH_STARTED";
+            }
+        } else if (wheel_batch_active(&batch)) {
+            if (action != WHEEL_CMD_STATUS) { error = "BRAKE_BATCH_ACTIVE"; }
         } else if (action == WHEEL_CMD_ENABLE ||
                    action == WHEEL_CMD_PROFILE_AIR || action == WHEEL_CMD_PROFILE_BIDIR) {
             if (wheel->state != WHEEL_IDLE) {
@@ -1749,7 +1895,9 @@ static void wheel_service(WheelTelemetry *wheel, uint32_t *phase_at, bool *enabl
                 detail = "MANEUVER_STARTED";
             }
         } else if (action != WHEEL_CMD_STATUS) {
-            if (wheel->state != WHEEL_READY && wheel->state != WHEEL_RUNNING) {
+            if (batch.armed) {
+                error = "BENCH_USE_AUTOMATIC_COMMAND";
+            } else if (wheel->state != WHEEL_READY && wheel->state != WHEEL_RUNNING) {
                 error = "WHEEL_NOT_READY";
             } else if (wheel->detumble == DETUMBLE_ACTIVE || result_hold) {
                 error = "STOP_AUTOMATIC_FIRST";

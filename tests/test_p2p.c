@@ -27,10 +27,20 @@ int main(void) {
       {"CMD,45,WHEEL,AXIS_Z-", WHEEL_CMD_AXIS_Z_NEG},
       {"CMD,46,WHEEL,TURN:-45", WHEEL_TURN_BASE + 135},
       {"CMD,47,WHEEL,LIGHTINV:359", WHEEL_LIGHT_BASE + 719},
+      {"CMD,48,WHEEL,BENCH_ARM", WHEEL_CMD_BENCH_ARM},
+      {"CMD,49,WHEEL,RESULTS", WHEEL_CMD_RESULTS},
+      {"CMD,50,WHEEL,RUNS:1505", WHEEL_RUNS_BASE + 1505},
+      {"CMD,51,WHEEL,RUNS:1575", WHEEL_RUNS_BASE + 1575},
   };
   for (unsigned i = 0; i < sizeof(wheel_setup) / sizeof(wheel_setup[0]); ++i) {
     assert(!P2P_ParseCommand(wheel_setup[i].frame, strlen(wheel_setup[i].frame), &cmd));
     assert(cmd.name == P2P_WHEEL && cmd.value == wheel_setup[i].action);
+  }
+  const char *bad_runs[] = {"RUNS:1500", "RUNS:1506", "RUNS:1580", "RUNS:+1505", "RUNS:15050"};
+  for (unsigned i = 0; i < sizeof(bad_runs) / sizeof(bad_runs[0]); ++i) {
+    char frame[32];
+    snprintf(frame, sizeof(frame), "CMD,52,WHEEL,%s", bad_runs[i]);
+    assert(P2P_ParseCommand(frame, strlen(frame), &cmd));
   }
   const char *bad[] = {
       "CMD,0,PING",         "CMD,65536,PING",     "CMD,1,PING,extra",

@@ -169,6 +169,7 @@
       <h3>Seguimiento de la luz</h3>
       <div class="light-compass" id="light-compass" aria-hidden="true">
         <span class="light-compass-ray" id="light-compass-ray" hidden></span>
+        <span class="light-hold-marker" id="light-hold-marker" hidden></span>
         <div class="light-compass-cube">
           <span data-light-top-face="1">1</span><span data-light-top-face="2">2</span>
           <span data-light-top-face="3">3</span><span data-light-top-face="4">4</span>
@@ -179,6 +180,8 @@
         <div><small>Orientaci&oacute;n desde el inicio</small><b id="light-cube-angle">&mdash;</b></div>
         <div><small>Luz respecto de cara 1</small><b id="light-angle-error">&mdash;</b></div>
         <div><small>Cara m&aacute;s iluminada</small><b id="light-brightest">&mdash;</b></div>
+        <div><small>&Aacute;ngulo guardado</small><b id="light-saved-angle">&mdash;</b></div>
+        <div><small>Error al &aacute;ngulo guardado</small><b id="light-hold-error">&mdash;</b></div>
       </div>
       <p id="light-track-status" class="hint" role="status">Esperando fotodiodos.</p>
       <h3>Fotodiodos del Nano</h3>

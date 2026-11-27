@@ -351,6 +351,9 @@
     document.getElementById('wheel-level').textContent=wheelFresh?wheel.level:'—';
     const adcsFresh=wheelFresh&&wheel.detumble!=null;
     renderMissionScene(wheel,adcsFresh);
+    const pc3=adcsFresh?wheel.light_4:null;
+    document.getElementById('photo-pc3-adc').textContent=fmt(pc3,' ADC');
+    document.getElementById('photo-pc3-voltage').textContent=fmt(Number.isFinite(pc3)?pc3*3.3/1023:null,' V',3);
     renderLightTracking(wheel,adcsFresh);
     document.getElementById('adcs-axis').textContent=adcsFresh&&wheel.axis<3?
       'XYZ'[wheel.axis]+(wheel.inverted?'−':'+'):'—';

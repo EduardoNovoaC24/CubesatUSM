@@ -268,7 +268,7 @@
         <button class="cmd-btn" id="spin-brake" data-cmd="WHEEL" data-value="BRAKE" disabled>Frenar</button>
         <button class="cmd-btn danger" id="spin-disarm" data-cmd="WHEEL" data-value="STOP" disabled>Desarmar ESC</button>
       </div>
-      <p class="hint">Gira el CubeSat, suéltalo y pulsa Frenar. El OBC arma el ESC y corrige el giro hasta bajar de 5 RPM. Si no llega a la meta, deja de corregir a los 10 s.</p>
+      <p class="hint">Gira el CubeSat, suéltalo y pulsa Frenar. Con el ESC CLASSIC, el OBC arma al m&iacute;nimo y corrige solo el sentido que permite el motor. Corta al bajar de 5 RPM o a los 10 s.</p>
       <p class="hint" id="spin-status" role="status">Esperando telemetría de la rueda.</p>
       <div class="metric-list">
         <div><small>Tiempo de frenado</small><b id="spin-elapsed">&mdash;</b></div>
@@ -277,7 +277,7 @@
       <h3>Respuesta del frenado</h3>
       <p class="hint">Velocidad angular del eje configurado (&deg;/s) &middot; referencia cero</p>
       <svg class="chart-area" id="plot-brake-rate" role="img" aria-label="Velocidad angular durante el frenado"></svg>
-      <p class="hint">PWM del ESC (&micro;s) &middot; referencia neutra de 1500 &micro;s</p>
+      <p class="hint">PWM del ESC (&micro;s) &middot; referencia de reposo seg&uacute;n el perfil</p>
       <svg class="chart-area" id="plot-brake-pwm" role="img" aria-label="PWM de la rueda durante el frenado"></svg>
       <p id="wheel-command-response" aria-live="polite">Sin órdenes de rueda</p>
       <p id="adcs-sensors">Esperando datos del GY‑91</p>
@@ -406,7 +406,7 @@ function render(data){
 async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());}catch(e){document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}finally{setTimeout(poll,1000);}}
 poll();
 </script>
-<script defer src="./assets/cubesat_web.js?v=one-button-brake"></script>
+<script defer src="./assets/cubesat_web.js?v=classic-brake"></script>
 <script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

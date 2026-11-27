@@ -108,32 +108,32 @@
     const command=commands?.find(cmd=>cmd.id===brakeCommandId);
     const waiting=brakeRequestInFlight||(brakeCommandId!==undefined&&
       (!command||['EN COLA','PICO QUEUED','PICO SENT'].includes(command.state)));
-    if(!waiting)brakeCommandId=undefined;
     const connected=picoState.connected&&picoState.capable;
     const timed=fresh&&wheel.maneuver===4;
     const braking=timed&&wheel.detumble===1;
     const arming=timed&&wheel.state===1;
     const gyroReady=fresh&&wheel.axis<3&&wheel.gyro_calibrated&&Number.isFinite(wheel.body_rpm);
     const canBrake=connected&&gyroReady&&(wheel.state===0||
-      (wheel.state===2&&wheel.profile===2&&wheel.pulse===1500&&wheel.spin_result!==7));
+      (wheel.state===2&&((wheel.profile===1&&wheel.pulse===1000)||(wheel.profile===2&&wheel.pulse===1500))&&wheel.spin_result!==7));
     document.getElementById('spin-brake').disabled=!canBrake||waiting;
     document.getElementById('spin-disarm').disabled=!connected;
     const results={1:'Menos de 5 RPM confirmadas. Rueda en neutro.',2:'Desarmado por operador.',
       3:'Frenado detenido por pérdida de enlace.',4:'Lectura del giroscopio inválida.',
+      11:'El giro cambió a un sentido que el CLASSIC no puede corregir.',
       5:'No se alcanzó el PWM solicitado.',6:'El OBC interrumpió el frenado.'};
     const errors={BRAKE_GYRO_UNAVAILABLE:'El OBC no tiene una lectura válida del giroscopio.',
+      BRAKE_WRONG_DIRECTION:'El CLASSIC no puede frenar ese sentido. Prueba girando el CubeSat al otro lado.',
       BRAKE_RATE_LIMIT:'El giro supera el rango permitido para frenar.',WAIT_FOR_STOP:'Espera a que el ESC termine de desarmarse.'};
     document.getElementById('spin-status').textContent=waiting?'Esperando confirmación del OBC.':
       !connected?'Conecta el Pico LoRa.':!fresh?'Esperando telemetría de la rueda.':
       command?.state==='ERR'?(errors[command.detail]||'El OBC rechazó el frenado.'):
-      arming?'Armando el ESC en neutro.':braking?'Frenando con el giroscopio.':
+      arming?(wheel.profile===1?'Armando el CLASSIC a 1000 µs.':'Armando el ESC en neutro.'):braking?'Frenando con el giroscopio.':
       timed&&wheel.detumble===3?'Se agotó el plazo de frenado. Rueda en neutro.':
       timed&&wheel.detumble===7?'El giro aumentó durante la corrección. Revisa la polaridad del eje.':
       (timed&&results[wheel.spin_result])||(!gyroReady?'Espera una lectura válida del giroscopio.':
       canBrake?'Listo para frenar.':'Espera a que termine la maniobra de la rueda.');
     document.getElementById('spin-elapsed').textContent=timed&&wheel.detumble?fmt(wheel.elapsed_s,' s',1):'—';
     document.getElementById('spin-to-5rpm').textContent=timed?fmt(wheel.spin_body_to_5rpm_s,' s',1):'—';
-    if(arming||braking)void keepTimedLink();
   }
   async function keepTimedLink(){
     if((lanKey&&!lanKey.value.trim())||performance.now()-spinStatusAt<8000)return;
@@ -331,7 +331,7 @@
       rate:Number.isFinite(sample.body_rpm)?6*sample.body_rpm:null,
       pulse:sample.pulse||null,
       zero:0,
-      neutral:1500
+      neutral:sample.profile===1?1000:sample.profile===2?1500:null
     }));
     drawChart('plot-brake-rate',brakeHistory,['rate','zero'],['#68d8e9','#aa8faa']);
     drawChart('plot-brake-pwm',brakeHistory,['pulse','neutral'],['#ffc86f','#aa8faa']);
@@ -379,7 +379,8 @@
     }
     const brakeRequest=btn.id==='spin-brake';
     if(brakeRequest){
-      if(brakeRequestInFlight||brakeCommandId!==undefined)return;
+      if(brakeRequestInFlight||btn.disabled)return;
+      brakeCommandId=undefined;
       brakeRequestInFlight=true;
       btn.disabled=true;
     }

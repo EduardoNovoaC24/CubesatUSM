@@ -14,7 +14,7 @@ La web estática usa Web Serial y ejecuta en el navegador los mismos analizadore
 
 ### Azimut
 
-En GitHub Pages, abre **Azimut**. Aplica el eje y la polaridad con la rueda desarmada y espera la calibración del giroscopio con el CubeSat quieto. Gira el CubeSat, suéltalo y pulsa **Frenar**. El STM32 arma el ESC en neutro si hace falta y aplica la corrección según la velocidad y el sentido medidos.
+En GitHub Pages, abre **Azimut**. Aplica el eje y la polaridad con la rueda desarmada y espera la calibración del giroscopio con el CubeSat quieto. Gira el CubeSat, suéltalo y pulsa **Frenar**. Con el perfil del ESC CLASSIC, el STM32 arma a 1000 µs y aplica una rampa de hasta 1250 µs si el sentido medido permite frenar el cuerpo. Si sale el aviso de sentido no compatible, prueba girando el CubeSat hacia el lado contrario.
 
 El OBC vuelve a neutro al confirmar menos de 5 RPM durante 0,3 s en el eje configurado. El plazo total desde que recibe la orden es de 10 s. El panel indica si vence el plazo o si el OBC interrumpe la maniobra. **Desarmar ESC** permite detenerla en cualquier momento.
 

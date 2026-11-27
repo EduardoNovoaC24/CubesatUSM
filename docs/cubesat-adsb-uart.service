@@ -1,0 +1,14 @@
+[Unit]
+Description=CubeSat ADS-B SBS to STM32 UART
+After=readsb.service
+
+[Service]
+DynamicUser=yes
+SupplementaryGroups=dialout
+Environment=ADSB_UART=/dev/serial0
+ExecStart=/usr/bin/python3 -u -B /opt/cubesat-adsb/raspberry_adsb_switch.py --uart ${ADSB_UART}
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target

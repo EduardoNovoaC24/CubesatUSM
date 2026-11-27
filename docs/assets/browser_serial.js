@@ -6,6 +6,26 @@
     adsb: document.getElementById('usb-adsb'),
     rp: document.getElementById('usb-rp'),
   };
+  const adsbMode = document.getElementById('usb-adsb-mode');
+  const adsbSource = document.getElementById('usb-adsb-source');
+  const adsbApply = document.getElementById('usb-adsb-apply');
+  const adsbFeedback = document.getElementById('usb-adsb-feedback');
+  const raspberryHello = document.getElementById('usb-raspberry-hello');
+  const raspberryReply = document.getElementById('usb-raspberry-reply');
+  let helloTimer;
+  function finishHello(message) {
+    clearTimeout(helloTimer);
+    helloTimer = undefined;
+    raspberryHello.disabled = !adsbOnly;
+    raspberryReply.textContent = message;
+  }
+  let adsbOnly = false;
+  let adsbPending;
+  function clearAdsbPending() {
+    if (adsbPending) clearTimeout(adsbPending.timer);
+    adsbPending = undefined;
+    adsbApply.disabled = !adsbOnly;
+  }
   const labels = { pico: 'Pico LoRa', adsb: 'ST-LINK ADS-B', rp: 'Modo RP' };
   const sessions = {};
   const serverTab = document.getElementById('server-tab');
@@ -93,7 +113,38 @@
         const lines = (pending + decoder.decode(value, { stream: true })).split('\n');
         pending = lines.pop().slice(-4096);
         for (const line of lines) {
-          if (line.trim()) backend.ingest(source, line.trim());
+          const record = line.trim();
+          if (record) backend.ingest(source, record);
+          if (source === 'adsb') {
+            if (record === 'ADSB_MODE,ON' || record === 'ADSB_MODE,OFF') {
+              adsbOnly = record === 'ADSB_MODE,ON';
+              adsbMode.textContent = adsbOnly ? 'Salir de Solo ADS-B' : 'Solo mensajes ADS-B';
+              clearAdsbPending();
+              adsbSource.disabled = !adsbOnly;
+              finishHello('');
+              adsbFeedback.textContent = adsbOnly ? 'Solo ADS-B activo. Selecciona una fuente.' : '';
+            } else if (record === 'HELLO_SENT,UART4' && helloTimer !== undefined) {
+              raspberryReply.textContent = 'STM32 envio el saludo por UART4. Esperando respuesta.';
+            } else if (record === 'HELLO_STM32' && helloTimer !== undefined) {
+              finishHello('Hola STM32. UART confirmada en ambos sentidos.');
+            } else if (record === 'HELLO_ERROR,UART_TX' && helloTimer !== undefined) {
+              finishHello('La STM32 no pudo enviar el saludo por UART4.');
+            } else if (record.startsWith('ADSB_SOURCE,')) {
+              const [, result, decoderName] = record.split(',');
+              const pendingSource = adsbPending?.source;
+              if (pendingSource && decoderName !== pendingSource &&
+                  !decoderName?.startsWith(pendingSource + '_') && decoderName !== 'UART_TX') continue;
+              if (pendingSource) clearAdsbPending();
+              if (result === 'OK') {
+                adsbSource.value = decoderName;
+                adsbFeedback.textContent = 'Fuente confirmada: ' + decoderName;
+              } else if (decoderName?.endsWith('_NO_SBS')) {
+                adsbFeedback.textContent = 'El puerto de la nueva fuente abre, pero no llegan mensajes SBS. Se conserva la fuente anterior.';
+              } else {
+                adsbFeedback.textContent = 'La Raspberry no pudo activar la fuente: ' + decoderName;
+              }
+            }
+          }
         }
       }
     } catch (error) {
@@ -111,6 +162,9 @@
     buttons[source].disabled = true;
     clearTimeout(session.hello);
     try {
+      if (source === 'adsb' && adsbOnly) {
+        await session.writer?.write(encoder.encode('ADSB OFF\r\n')).catch(() => {});
+      }
       if (session.reader) await session.reader.cancel().catch(() => {});
       await session.reading;
       session.writer?.releaseLock();
@@ -121,6 +175,14 @@
     } finally {
       backend.link_status(source, false, message);
       delete sessions[source];
+      if (source === 'adsb') {
+        adsbOnly = false;
+        clearAdsbPending();
+        finishHello('');
+        adsbMode.disabled = adsbApply.disabled = adsbSource.disabled = true;
+        adsbMode.textContent = 'Solo mensajes ADS-B';
+        adsbFeedback.textContent = '';
+      }
       buttons[source].textContent = source === 'rp' ? 'Modo RP · conectar UART' : 'Conectar ' + labels[source];
       buttons[source].disabled = source === 'pico' && serverPrepared;
       notice.textContent = labels[source] + ' · ' + message;
@@ -185,6 +247,50 @@
     buttons.pico.focus();
   });
 
+  async function sendAdsb(command) {
+    const session = sessions.adsb;
+    if (!session?.writer || session.closing) return;
+    if (adsbPending) return;
+    const mode = command === 'ADSB ONLY' || command === 'ADSB OFF';
+    const request = {source: mode ? undefined : command.slice(5)};
+    adsbPending = request;
+    adsbApply.disabled = true;
+    adsbFeedback.textContent = mode ? 'Esperando confirmacion de la STM32.' :
+      'Esperando datos SBS de ' + request.source + '.';
+    request.timer = setTimeout(() => {
+      if (adsbPending !== request) return;
+      clearAdsbPending();
+      adsbFeedback.textContent = mode ? 'Sin respuesta de la STM32 por USB.' :
+        'Sin confirmacion de la Raspberry. Revisa el puente UART y el puerto SBS.';
+    }, mode ? 4000 : 12000);
+    try {
+      await session.writer.write(encoder.encode(command + '\r\n'));
+    } catch (error) {
+      if (adsbPending === request) {
+        clearAdsbPending();
+        adsbFeedback.textContent = error.message;
+      }
+    }
+  }
+  raspberryHello.onclick = async () => {
+    const session = sessions.adsb;
+    if (!adsbOnly || !session?.writer || session.closing || helloTimer !== undefined) return;
+    raspberryHello.disabled = true;
+    if (!adsbPending) adsbFeedback.textContent = '';
+    raspberryReply.textContent = 'Esperando Hola STM32 desde la Raspberry.';
+    const timer = setTimeout(() => finishHello('Sin respuesta de la Raspberry por UART4.'), 5000);
+    helloTimer = timer;
+    try {
+      await session.writer.write(encoder.encode('HELLO RASPBERRY\r\n'));
+    } catch (error) {
+      if (helloTimer === timer) finishHello(error.message);
+    }
+  };
+  adsbMode.onclick = () => void sendAdsb(adsbOnly ? 'ADSB OFF' : 'ADSB ONLY');
+  adsbApply.onclick = () => {
+    if (adsbOnly) void sendAdsb('ADSB ' + adsbSource.value);
+  };
+
   for (const [source, button] of Object.entries(buttons)) {
     button.addEventListener('click', async () => {
       const existing = sessions[source];
@@ -202,11 +308,11 @@
         session = { port };
         sessions[source] = session;
         session.reader = port.readable.getReader();
-        if (source === 'pico') session.writer = port.writable.getWriter();
+        if (source === 'pico' || source === 'adsb') session.writer = port.writable.getWriter();
         backend.link_status(source, true, labels[source] + ' conectado');
         session.reading = read(source, session);
         void session.reading.then((message) => close(source, session, message));
-        if (session.writer) {
+        if (source === 'pico') {
           await session.writer.write(encoder.encode('HELLO\n'));
           if (session.closing) return;
           session.hello = setTimeout(() => {
@@ -218,6 +324,7 @@
           ? 'Modo RP activo. El radar usa la UART de la Raspberry Pi.'
           : labels[source] + ' conectado a 115200 baudios.';
         if (source === 'pico') serverTab.disabled = false;
+        if (source === 'adsb') adsbMode.disabled = false;
       } catch (error) {
         if (session) await close(source, session, error.message);
         else notice.textContent = error.name === 'NotFoundError' ? 'No se seleccionó un puerto.' : error.message;

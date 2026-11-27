@@ -107,9 +107,10 @@
   }
   function renderTimedSpin(wheel, adcsFresh, commands){
     const timed=adcsFresh&&wheel.maneuver===4;
+    const sweep=timed&&wheel.spin_result===9;
     const motion=timed&&wheel.spin_result===0&&[1,3].includes(wheel.state);
     const braking=timed&&wheel.detumble===1;
-    const resultLabels=['Girando','Giro estabilizado.','Desarmado por operador.','Detenido por pérdida de enlace.','Detenido por una lectura de giro inválida.','No se alcanzó el PWM pedido.','Frenado interrumpido: no se estabilizó.'];
+    const resultLabels=['Girando','Giro estabilizado.','Desarmado por operador.','Detenido por pérdida de enlace.','Detenido por una lectura de giro inválida.','No se alcanzó el PWM pedido.','Frenado interrumpido: no se estabilizó.','Esperando giro manual.','Se agotó la espera de giro manual.'];
     const pending=commands?.find(cmd=>cmd.id===spinCommandId);
     const waiting=spinCommandId!==undefined&&(!pending||['EN COLA','PICO QUEUED','PICO SENT'].includes(pending.state));
     if(spinCommandId!==undefined&&!waiting)spinCommandId=undefined;
@@ -121,26 +122,33 @@
     const brake=document.getElementById('spin-brake');
     const connected=picoState.connected&&picoState.capable;
     brake.disabled=!connected;
+    document.getElementById('spin-sweep').disabled=!connected||!adcsFresh||wheel.state!==0;
     document.getElementById('spin-brake-manual').disabled=!connected;
     document.getElementById('spin-disarm').disabled=!connected;
     document.getElementById('spin-status').textContent=waiting?'Esperando el ACK del STM32.':
       motion&&wheel.state===1?(wheel.spin_seconds==null?'Armando el ESC para frenar el giro manual.':'Armando el ESC.'):
       braking&&wheel.spin_result===1?'Manteniendo el reposo. El control sigue activo.':
       braking&&Number.isFinite(wheel.elapsed_s)&&wheel.elapsed_s<1?'Midiendo el sentido y la velocidad angular.':
-      braking?'Frenando en Z+. El reposo se confirma tras 10 s cerca de cero.':
+      braking?'Frenando en el eje aplicado. El reposo se confirma tras 1 s cerca de cero.':
       motion?'Giro temporizado en curso.':
       timed&&wheel.spin_result?resultLabels[wheel.spin_result]||block:
       block||'Listo para iniciar el giro.';
     document.getElementById('spin-elapsed').textContent=timed?fmt(wheel.elapsed_s,' s',1):'—';
     document.getElementById('spin-clock-label').textContent=timed&&wheel.detumble?'Tiempo de frenado':'Tiempo de giro';
+    document.getElementById('spin-to-5rpm').textContent=timed?fmt(wheel.spin_body_to_5rpm_s,' s',1):'?';
     document.getElementById('spin-duration').textContent=timed?fmt(wheel.spin_seconds,' s',0):'—';
     document.getElementById('manual-ready-status').textContent=!connected?'Conecta el Pico LoRa.':
       !adcsFresh?'Esperando el estado de la rueda.':
+      timed&&wheel.spin_result===7?'Esperando giro manual en neutro.':
+      timed&&wheel.spin_result===8?'Terminó la espera sin detectar un giro.':
       wheel.state===2&&wheel.profile===2?'Rueda preparada en neutro. Los jueces ya pueden girar el CubeSat.':
       wheel.state===1?'Preparando el ESC en neutro.':
       wheel.state===0?'Prepara la rueda antes de que los jueces giren el CubeSat.':
       'Rueda en maniobra. Desarma el ESC para preparar otra prueba.';
-    if(motion||braking)void keepTimedLink();
+    document.getElementById('spin-sweep-status').textContent=sweep?
+      (wheel.state===1?'Armando en neutro.':'Alternando el sentido con amplitud decreciente.'):
+      timed&&wheel.spin_result===10?'Secuencia terminada.':'';
+    if(motion||braking||sweep)void keepTimedLink();
   }
   function renderTurn(wheel, fresh, commands){
     const command=commands?.find(cmd=>cmd.id===turnCommandId);
@@ -150,21 +158,26 @@
     const available=fresh&&picoState.connected&&picoState.capable&&
       wheel.axis<3&&wheel.gyro_calibrated&&Number.isFinite(wheel.body_rpm);
     const active=fresh&&wheel.maneuver===2&&wheel.detumble===1;
-    const turn=fresh&&wheel.maneuver===2&&wheel.target_deg===180;
+    const turn=fresh&&wheel.maneuver===2&&Number.isFinite(wheel.target_deg);
     const ready=available&&wheel.state===2&&wheel.profile===2;
     document.getElementById('turn-arm').disabled=!picoState.connected||!picoState.capable;
-    document.getElementById('turn-start').disabled=waiting||!ready||Math.abs(wheel.body_rpm)>0.33;
+    const canStart=ready&&!waiting&&Math.abs(wheel.body_rpm)<=0.33&&wheel.spin_result!==7;
+    document.querySelectorAll('[data-turn]').forEach(button=>button.disabled=!canStart);
+    document.getElementById('manual-auto').disabled=!canStart;
     document.getElementById('turn-angle').textContent=turn?fmt(wheel.rotation_deg,'°',1):'—';
     document.getElementById('turn-error').textContent=turn&&Number.isFinite(wheel.rotation_deg)?
       fmt(wheel.target_deg-wheel.rotation_deg,'°',1):'—';
+    document.getElementById('turn-time').textContent=turn?fmt(wheel.elapsed_s,' s',2):'—';
+    document.getElementById('turn-overshoot').textContent=turn?fmt(wheel.turn_overshoot_deg,'°',1):'—';
+    document.getElementById('turn-peak').textContent=turn?fmt(wheel.turn_peak_dps,' °/s',1):'—';
     const results={2:'La STM32 confirm? reposo dentro de la tolerancia.',3:'Tiempo límite alcanzado.',
       4:'Lectura de giro inválida.',5:'Giro detenido.',6:'Límite de la rueda alcanzado.',
       7:'El giro se alej? del objetivo.',8:'Se perdi? el enlace.'};
     document.getElementById('turn-status').textContent=waiting?'Esperando confirmación de la STM32.':
       !fresh?'Esperando telemetría de la rueda.':
-      active?'Girando hacia 180°.':
+      active?'Girando hacia '+fmt(wheel.target_deg,'°',1)+'.':
       wheel.state===1?'Armando el ESC.':
-      ready?'Rueda armada. Pulsa Girar 180° con el CubeSat quieto.':
+      ready?'Rueda armada. Puedes iniciar la prueba.':
       turn&&results[wheel.detumble]?results[wheel.detumble]:
       !available?'Conecta el Pico y verifica el eje y la calibración del giroscopio.':
       'Con el CubeSat quieto, pulsa Preparar rueda.';
@@ -202,10 +215,10 @@
     const readings=[1,2,3,4].map(face=>fresh?wheel['light_'+face]:null);
     const valid=readings.every(Number.isFinite);
     const maximum=valid?Math.max(...readings):null;
-    const x=valid?readings[0]-readings[2]:0;
-    const y=valid?readings[1]-readings[3]:0;
-    const directional=valid&&Math.hypot(x,y)>=Math.max(80,.08*readings.reduce((a,b)=>a+b,0));
-    const bodyAngle=directional?Math.atan2(y,x)*180/Math.PI:null;
+    const x=valid?readings[0]-readings[3]:0;
+    const z=valid?readings[1]-readings[2]:0;
+    const directional=valid&&Math.hypot(x,z)>=Math.max(80,.08*readings.reduce((a,b)=>a+b,0));
+    const bodyAngle=directional?Math.atan2(z,x)*180/Math.PI:null;
     const tracking=fresh&&wheel.maneuver===3;
     const active=tracking&&wheel.detumble===1;
     const hasPose=fresh&&[2,3].includes(wheel.maneuver)&&Number.isFinite(wheel.rotation_deg);
@@ -213,18 +226,18 @@
     const saved=tracking&&typeof wheel.light_hold_stable==='boolean'&&Number.isFinite(wheel.target_deg)?wheel.target_deg:null;
     const holdError=saved!==null&&hasPose?((saved-rotation+180)%360+360)%360-180:null;
     const scene=document.getElementById('light-compass');
-    scene.style.setProperty('--cube-heading',rotation+'deg');
-    if(directional)scene.style.setProperty('--light-heading',(rotation+bodyAngle)+'deg');
+    scene.style.setProperty('--cube-heading','0deg');
+    if(directional)scene.style.setProperty('--light-heading',bodyAngle+'deg');
     document.getElementById('light-compass-ray').hidden=!directional;
     const holdMarker=document.getElementById('light-hold-marker');
-    holdMarker.hidden=saved===null;
-    if(saved!==null)scene.style.setProperty('--hold-heading',saved+'deg');
+    holdMarker.hidden=true; /* The saved heading is around Z, outside this XZ projection. */
     document.getElementById('light-saved-angle').textContent=fmt(saved,'°',1);
     document.getElementById('light-hold-error').textContent=fmt(holdError,'°',1);
-    document.getElementById('light-cube-angle').textContent=hasPose?fmt(rotation,'°',1):'Referencia: cara 1';
+    document.getElementById('light-cube-angle').textContent=hasPose?fmt(rotation,'°',1):'Sin giro medido';
     document.getElementById('light-angle-error').textContent=directional?fmt(bodyAngle,'°',1):'—';
+    const faceNumbers=[3,2,4,1];
     const leaders=directional?readings.flatMap((value,i)=>value===maximum?[i+1]:[]):[];
-    document.getElementById('light-brightest').textContent=leaders.length?leaders.join(' / ')+' ('+maximum+' ADC)':'—';
+    document.getElementById('light-brightest').textContent=leaders.length?leaders.map(channel=>faceNumbers[channel-1]).join(' / ')+' ('+maximum+' ADC)':'—';
     document.querySelectorAll('[data-light-top-face]').forEach(el=>{
       const face=Number(el.dataset.lightTopFace);
       el.classList.toggle('brightest',leaders.includes(face));
@@ -238,7 +251,7 @@
       (saved!==null?(wheel.light_hold_stable?'Reposo confirmado. Manteniendo el ángulo guardado.':
         'Luz perdida. Frenando y corrigiendo hacia el ángulo guardado.'):
       !directional?'Confirmando pérdida de luz.':
-      directional&&Math.abs(bodyAngle)<=3?'Luz cerca de la cara 1. Seguimiento activo.':'La STM32 está siguiendo la luz.'):
+      'La STM32 está siguiendo la luz.'):
       tracking&&results[wheel.detumble]?results[wheel.detumble]:
       !valid?'Esperando muestras recientes de los cuatro fotodiodos.':
       !directional?'Iluminación pareja o señal débil. Apunta la lámpara desde un costado.':
@@ -269,7 +282,7 @@
     const ina=reading?.source==='ina219';
     document.querySelectorAll('[data-eps-analog-only]').forEach(el=>el.hidden=ina);
     document.getElementById('eps-solar-label').textContent=ina?'Línea solar · INA219':'Pareja 1 · PC4';
-    document.getElementById('eps-battery-label').textContent=ina?'Voltaje de batería':'Batería · PA1';
+    document.getElementById('eps-battery-label').textContent=ina?'Voltaje de batería':'Voltaje de batería';
     document.getElementById('eps-current-card').hidden=!ina;
     document.getElementById('eps-current').textContent=fresh&&ina?fmt(reading.current_ma,' mA',2):'—';
     const channels=fresh?(reading.channels||[]):[];
@@ -408,6 +421,7 @@
   }
   document.querySelectorAll('[data-cmd]').forEach(btn=>btn.addEventListener('click',async()=>{
     if(!picoState.connected||!picoState.capable)return;
+    if(btn.id==='spin-sweep'&&!window.confirm('La rueda va a invertir el giro. Confirma que puede girar libremente.'))return;
     if(btn.dataset.confirm==='true'&&!window.confirm('¿Enviar '+btn.dataset.cmd+' a la STM32 vía LoRa? La aplicación no confirmará su aplicación hasta recibir un ACK.'))return;
     let args=btn.dataset.value?[btn.dataset.value]:
       btn.dataset.arg?[document.getElementById(btn.dataset.arg).value]:[];
@@ -417,12 +431,26 @@
       const pulse=document.getElementById('spin-pwm');
       const duration=document.getElementById('spin-seconds');
       if(!pulse.reportValidity()||!duration.reportValidity())return;
+      if(pulse.valueAsNumber===1500){msg.textContent='1500 ?s es neutro. Elige un PWM de giro.';return;}
       args=['RUN:'+pulse.valueAsNumber+':'+duration.valueAsNumber];
       btn.disabled=true;
+    }else if(btn.dataset.prefix==='ANGLE'){
+      const angle=document.getElementById('turn-angle-input');
+      if(!angle.reportValidity()||angle.valueAsNumber===0){
+        msg.textContent='Ingresa un angulo distinto de cero.';
+        return;
+      }
+      args=['TURN:'+angle.valueAsNumber.toFixed(1)];
+    }else if(btn.dataset.prefix==='AUTO_BRAKE'){
+      const threshold=document.getElementById('manual-threshold');
+      const timeout=document.getElementById('manual-timeout');
+      if(!threshold.reportValidity()||!timeout.reportValidity())return;
+      if(!window.confirm('La rueda puede empezar a corregir de forma automatica. Confirma que el cubo puede girar libremente.'))return;
+      args=['BRK:'+threshold.valueAsNumber+':'+timeout.valueAsNumber];
     }else if(btn.dataset.prefix==='AXIS_'){
       args=['AXIS_'+args[0]];
     }
-    const turnRequest=btn.id==='turn-start'||btn.id==='light-follow';
+    const turnRequest=btn.hasAttribute('data-turn')||btn.id==='manual-auto'||btn.id==='light-follow';
     if(turnRequest){
       if(turnRequestInFlight||turnCommandId!==undefined)return;
       turnRequestInFlight=true;
@@ -448,7 +476,7 @@
     if(!rows.length)return;
     const keys=['t','axis','inverted','body_rpm','elapsed_s','detumble','pulse','level','rpm','leds',
       'gyro_calibrated','mag_calibrated','mag_valid','fusion_9dof','light_1','light_2','light_3','light_4',
-      'maneuver','rotation_deg','target_deg','reference_deg','light_azimuth_deg','light_hold_stable','brake_initial_rpm','brake_to_5rpm_s','spin_seconds','spin_pwm','spin_result'];
+      'maneuver','rotation_deg','target_deg','turn_overshoot_deg','turn_peak_dps','reference_deg','light_azimuth_deg','light_hold_stable','brake_initial_rpm','brake_to_5rpm_s','spin_seconds','spin_pwm','spin_result','spin_body_to_5rpm_s'];
     const csv=[keys.join(','),...rows.map(row=>keys.map(key=>row[key]??'').join(','))].join('\n');
     const uri=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
     const link=document.createElement('a');link.href=uri;link.download='adcs-telemetria.csv';link.click();

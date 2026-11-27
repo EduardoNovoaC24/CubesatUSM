@@ -69,6 +69,14 @@
 <div class="usb-toolbar" aria-label="Conexión y aspecto">
   <button id="usb-pico">Conectar Pico LoRa</button>
   <button id="usb-adsb">Conectar ST-LINK ADS-B</button>
+  <button id="usb-adsb-mode" type="button" disabled>Solo mensajes ADS-B</button>
+  <label for="usb-adsb-source">Fuente UART</label>
+  <select id="usb-adsb-source" disabled><option value="READSB">readsb</option><option value="MORE1090">more1090</option></select>
+  <button id="usb-adsb-apply" type="button" disabled>Cambiar fuente</button>
+  <p id="usb-adsb-feedback" role="status"></p>
+  <button id="usb-raspberry-hello" type="button" disabled>Hola Raspberry</button>
+  <p id="usb-raspberry-reply" role="status"></p>
+  <a href="./raspberry_adsb_switch.py" download>Puente UART STM32</a>
   <button id="usb-rp" type="button">Modo RP &middot; conectar UART</button>
   <a href="./raspberry_adsb_uart.py" download>Script Raspberry Pi</a>
   <label for="theme">Galaxia</label>
@@ -192,10 +200,10 @@
             <div class="mission-bus">
               <div class="mission-module mission-upper"></div>
               <div class="mission-module mission-middle">
-                <span class="mission-photo" data-mission-light="1" data-state="unknown" title="Cara 1">1</span>
+                <span class="mission-photo" data-mission-light="1" data-state="unknown" title="Cara 3">3</span>
                 <span class="mission-photo" data-mission-light="2" data-state="unknown" title="Cara 2">2</span>
-                <span class="mission-photo" data-mission-light="3" data-state="unknown" title="Cara 3">3</span>
-                <span class="mission-photo" data-mission-light="4" data-state="unknown" title="Cara 4">4</span>
+                <span class="mission-photo" data-mission-light="3" data-state="unknown" title="Cara 4">4</span>
+                <span class="mission-photo" data-mission-light="4" data-state="unknown" title="Cara 1">1</span>
               </div>
               <div class="mission-module mission-lower"><div class="wheel-rotor" id="mission-rotor"></div></div>
             </div>
@@ -210,28 +218,28 @@
         <span class="light-compass-ray" id="light-compass-ray" hidden></span>
         <span class="light-hold-marker" id="light-hold-marker" hidden></span>
         <div class="light-compass-cube">
-          <span data-light-top-face="1">1</span><span data-light-top-face="2">2</span>
-          <span data-light-top-face="3">3</span><span data-light-top-face="4">4</span>
-          <b>Z+</b>
+          <span data-light-top-face="1" title="Cara 3 / +X">3</span><span data-light-top-face="2" title="Cara 2 / +Z">2</span>
+          <span data-light-top-face="4" title="Cara 1 / -X">1</span><span data-light-top-face="3" title="Cara 4 / -Z">4</span>
+          <b>XZ</b>
         </div>
       </div>
       <div class="metric-list">
-        <div><small>Orientaci&oacute;n desde el inicio</small><b id="light-cube-angle">&mdash;</b></div>
-        <div><small>Luz respecto de cara 1</small><b id="light-angle-error">&mdash;</b></div>
+        <div><small>Giro de la rueda en Z+</small><b id="light-cube-angle">&mdash;</b></div>
+        <div><small>&Aacute;ngulo de luz en XZ (desde +X)</small><b id="light-angle-error">&mdash;</b></div>
         <div><small>Cara m&aacute;s iluminada</small><b id="light-brightest">&mdash;</b></div>
         <div><small>&Aacute;ngulo guardado</small><b id="light-saved-angle">&mdash;</b></div>
         <div><small>Error al &aacute;ngulo guardado</small><b id="light-hold-error">&mdash;</b></div>
       </div>
       <p id="light-track-status" class="hint" role="status">Esperando fotodiodos.</p>
-      <h3>Fotodiodos del Nano</h3>
+      <h3>Fotodiodos de la STM32</h3>
       <div class="metric-list mission-light-grid">
-        <div><small>Cara 1 · A0</small><b data-light-value="1">—</b><meter aria-label="Señal relativa cara 1" data-light-meter="1" min="0" max="1023"></meter></div>
-        <div><small>Cara 2 · A1</small><b data-light-value="2">—</b><meter aria-label="Señal relativa cara 2" data-light-meter="2" min="0" max="1023"></meter></div>
-        <div><small>Cara 3 · A2</small><b data-light-value="3">—</b><meter aria-label="Señal relativa cara 3" data-light-meter="3" min="0" max="1023"></meter></div>
-        <div><small>Cara 4 · A3</small><b data-light-value="4">—</b><meter aria-label="Señal relativa cara 4" data-light-meter="4" min="0" max="1023"></meter></div>
+        <div><small>Cara 1 · PC3</small><b data-light-value="4">—</b><meter aria-label="Señal relativa cara 1" data-light-meter="4" min="0" max="1023"></meter></div>
+        <div><small>Cara 2 · PA1 · eje Z</small><b data-light-value="2">—</b><meter aria-label="Señal relativa cara 2" data-light-meter="2" min="0" max="1023"></meter></div>
+        <div><small>Cara 4 · PC2</small><b data-light-value="3">—</b><meter aria-label="Señal relativa cara 4" data-light-meter="3" min="0" max="1023"></meter></div>
+        <div><small>Cara 3 · PA0 · eje X</small><b data-light-value="1">—</b><meter aria-label="Señal relativa cara 3" data-light-meter="1" min="0" max="1023"></meter></div>
       </div>
 
-      <p class="hint">Valores ADC del Nano recibidos por UART4.</p>
+      <p class="hint">Lecturas anal&oacute;gicas directas de la STM32.</p>
       <div class="metric-list">
         <div><small>RPM medidas</small><b id="wheel-rpm">—</b></div>
         <div><small>PWM de salida</small><b id="wheel-pulse">—</b></div>
@@ -255,13 +263,25 @@
         <button class="cmd-btn" id="turn-arm" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Preparar rueda</button>
         <button class="cmd-btn danger" id="spin-brake-manual" data-cmd="WHEEL" data-value="BRAKE" disabled>Frenar giro manual</button>
       </div>
+      <div class="control-row">
+        <label for="manual-threshold">Umbral de giro (&deg;/s)</label>
+        <input id="manual-threshold" type="number" min="5" max="45" value="15" required>
+        <label for="manual-timeout">Espera (s)</label>
+        <input id="manual-timeout" type="number" min="5" max="60" value="30" required>
+        <button class="cmd-btn" id="manual-auto" data-cmd="WHEEL" data-prefix="AUTO_BRAKE" disabled>Esperar giro manual</button>
+      </div>
+      <p class="hint">La detecci&oacute;n estima el soltado por la aceleraci&oacute;n angular. La rueda tiene un l&iacute;mite de momento y puede quedar giro residual.</p>
       <p class="hint" id="manual-ready-status" role="status">Esperando el estado de la rueda.</p>
       <p class="hint">Cuando los jueces suelten el CubeSat, pulsa Frenar giro manual. El resultado aparece en el estado y en los gr&aacute;ficos de frenado.</p>
       <h3>Giro temporizado</h3>
-      <p class="hint">Eje y polaridad fijos en <strong>Z+</strong>.</p>
+      <div class="command-row">
+        <label for="spin-axis">Eje y polaridad del montaje</label>
+        <select id="spin-axis"><option>X+</option><option>X-</option><option>Y+</option><option>Y-</option><option selected>Z+</option><option>Z-</option></select>
+        <button class="cmd-btn" data-cmd="WHEEL" data-arg="spin-axis" data-prefix="AXIS_" disabled>Aplicar eje</button>
+      </div>
       <div class="control-row">
         <label for="spin-pwm">PWM del ESC (µs)</label>
-        <input id="spin-pwm" type="number" min="1505" max="1575" step="5" value="1505" required>
+        <input id="spin-pwm" type="number" min="1425" max="1575" step="5" value="1505" required>
         <label for="spin-seconds">Duración (s)</label>
         <input id="spin-seconds" type="number" min="1" max="60" step="1" value="5" required>
       </div>
@@ -274,18 +294,35 @@
       <div class="metric-list">
         <div><small id="spin-clock-label">Tiempo de giro</small><b id="spin-elapsed">—</b></div>
         <div><small>Duración ordenada</small><b id="spin-duration">—</b></div>
+        <div><small>CubeSat de &gt;60 a &lt;5 RPM</small><b id="spin-to-5rpm">&mdash;</b></div>
       </div>
-      <p class="hint">Puedes girar el CubeSat a mano y pulsar Frenar, o usar Encender y despu&eacute;s Frenar. La STM32 mide el giro durante el primer segundo y luego corrige. El reposo se confirma tras 10 s con velocidad y aceleraci&oacute;n angular cerca de cero. Desarmar ESC termina la correcci&oacute;n.</p>
+      <p class="hint">Puedes girar el CubeSat a mano y pulsar Frenar, o usar Encender y despu&eacute;s Frenar. La STM32 mide el giro durante el primer segundo y luego corrige. El reposo se confirma tras 1 s con velocidad y aceleraci&oacute;n angular cerca de cero. Desarmar ESC termina la correcci&oacute;n.</p>
       <h3>Prueba angular y seguimiento de luz</h3>
       <div class="command-grid">
-        <button class="cmd-btn" id="turn-start" data-cmd="WHEEL" data-value="TURN:180" disabled>Girar 180°</button>
+        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:45" disabled>+45&deg;</button>
+        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:-45" disabled>-45&deg;</button>
+        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:90" disabled>+90&deg;</button>
+        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:-90" disabled>-90&deg;</button>
+        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:180" disabled>+180&deg;</button>
         <button class="cmd-btn" id="light-follow" data-cmd="WHEEL" data-value="LIGHT:0" disabled>Seguir luz</button>
+      </div>
+      <div class="control-row">
+        <label for="turn-angle-input">&Aacute;ngulo objetivo (&deg;)</label>
+        <input id="turn-angle-input" type="number" min="-180" max="180" step="0.1" value="45" required>
+        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-prefix="ANGLE" disabled>Ejecutar giro</button>
       </div>
       <div class="metric-list">
         <div><small>Giro estimado</small><b id="turn-angle">—</b></div>
-        <div><small>Error al objetivo</small><b id="turn-error">—</b></div>
+        <div><small>Error al objetivo</small><b id="turn-error">&mdash;</b></div>
+        <div><small>Tiempo al umbral</small><b id="turn-time">&mdash;</b></div>
+        <div><small>Sobrepaso m&aacute;ximo</small><b id="turn-overshoot">&mdash;</b></div>
+        <div><small>Velocidad angular m&aacute;xima</small><b id="turn-peak">&mdash;</b></div>
       </div>
       <p class="hint" id="turn-status" role="status">Esperando telemetría de la rueda.</p>
+      <h3>Prueba de oscilaci&oacute;n</h3>
+      <button class="cmd-btn" id="spin-sweep" data-cmd="WHEEL" data-value="SWEEP" disabled>Probar izquierda y derecha</button>
+      <p class="hint">Alterna el PWM alrededor de 1500 &micro;s con amplitudes de 30, 20 y 10 &micro;s. Desarmar ESC interrumpe la prueba.</p>
+      <p id="spin-sweep-status" class="hint" role="status"></p>
       <h3>Respuesta del frenado</h3>
       <p class="hint">Velocidad angular Z (&deg;/s) &middot; referencia cero</p>
       <svg class="chart-area" id="plot-brake-rate" role="img" aria-label="Velocidad angular durante el frenado"></svg>
@@ -316,28 +353,28 @@
       </div>
     </div>
     <div class="web-card">
-      <h3>Voltaje de los tres paneles</h3>
+      <h3>Voltaje de paneles</h3>
       <div class="metric-list">
         <div><small>Panel 1 · PC4</small><b data-panel-voltage="0">—</b></div>
-        <div><small>Panel 2 · PC2</small><b data-panel-voltage="1">—</b></div>
-        <div><small>Panel 3 · PC3</small><b data-panel-voltage="2">—</b></div>
+        <div><small>Panel 2 sin entrada ADC</small><b data-panel-voltage="1">—</b></div>
+        <div><small>Panel 3 sin entrada ADC</small><b data-panel-voltage="2">—</b></div>
       </div>
       <p class="hint" id="panels-status" role="status">Esperando voltajes por LoRa.</p>
-      <svg class="chart-area" id="plot-solar" role="img" aria-label="Historial de voltaje de los tres paneles"></svg>
-      <div class="legend eps-legend"><span>Panel 1 · PC4</span><span>Panel 2 · PC2</span><span>Panel 3 · PC3</span></div>
+      <svg class="chart-area" id="plot-solar" role="img" aria-label="Historial de voltaje de paneles"></svg>
+      <div class="legend eps-legend"><span>Panel 1 · PC4</span><span>Panel 2 sin entrada ADC</span><span>Panel 3 sin entrada ADC</span></div>
       <h3>Telemetría EPS</h3>
       <div class="eps-flow">
         <div class="eps-inputs">
           <div><small id="eps-solar-label">Pareja 1 · PC4</small><b data-eps-voltage="0">—</b></div>
           <div data-eps-analog-only><small>Pareja 2 · PC5</small><b data-eps-voltage="1">—</b></div>
-          <div data-eps-analog-only><small>Pareja 3 · PA0</small><b data-eps-voltage="2">—</b></div>
+          <div data-eps-analog-only><small>Pareja 3 (EPS antiguo)</small><b data-eps-voltage="2">—</b></div>
           <div id="eps-current-card" hidden><small>Corriente solar · INA219</small><b id="eps-current">—</b></div>
         </div>
         <span class="eps-arrow" aria-hidden="true">→</span>
         <div class="eps-block">EPS</div>
         <span class="eps-arrow" aria-hidden="true">→</span>
         <div class="eps-battery">
-          <small id="eps-battery-label">Batería · PA1</small><b data-eps-voltage="3">—</b>
+          <small id="eps-battery-label">Voltaje de batería</small><b data-eps-voltage="3">—</b>
           <div class="battery-outline" aria-hidden="true"><span id="eps-battery-fill"></span><i></i></div>
           <small>Escala de voltaje 0–16 V</small>
         </div>
@@ -361,7 +398,7 @@
   </div>
 </section>
 
-<script src="./assets/browser_serial.js?v=965e7be5ee"></script>
+<script src="./assets/browser_serial.js?v=0ebfbe3a9d"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="./assets/adsb_history.js"></script>
 <script>
@@ -418,7 +455,7 @@ function render(data){
 async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());}catch(e){document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}finally{setTimeout(poll,1000);}}
 poll();
 </script>
-<script defer src="./assets/cubesat_web.js?v=0f8da123a1"></script>
+<script defer src="./assets/cubesat_web.js?v=40548a3d91"></script>
 <script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

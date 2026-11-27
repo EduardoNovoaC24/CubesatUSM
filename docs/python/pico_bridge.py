@@ -107,22 +107,26 @@ def validate_command(name: str, args: list) -> str:
         action = args[0]
         if re.fullmatch(r'RUN:[0-9]{4}:[0-9]{1,2}', action):
             pulse, seconds = map(int, action.split(':')[1:])
-            if not 1505 <= pulse <= 1575 or pulse % 5 or not 1 <= seconds <= 60:
+            if not 1425 <= pulse <= 1575 or pulse == 1500 or pulse % 5 or not 1 <= seconds <= 60:
                 raise ValueError('PWM de 1505 a 1575 µs en pasos de 5 y duración de 1 a 60 s')
             args = [f'RUN:{pulse}:{seconds}']
         elif re.fullmatch(r'RUNS:[0-9]{4}', action):
             pulse = int(action.split(':')[1])
             if not 1505 <= pulse <= 1575 or pulse % 5:
                 raise ValueError('PWM entre 1505 y 1575 µs, en pasos de 5')
-        elif re.fullmatch(r'TURN:-?[0-9]{1,3}', action):
-            if not 1 <= abs(int(action.split(':')[1])) <= 180:
+        elif re.fullmatch(r'BRK:[0-9]{1,2}:[0-9]{1,2}', action):
+            threshold, wait = map(int, action.split(':')[1:])
+            if not 5 <= threshold <= 45 or not 5 <= wait <= 60:
+                raise ValueError('Umbral de 5 a 45 grados/s y espera de 5 a 60 s')
+        elif re.fullmatch(r'TURN:-?[0-9]{1,3}(?:\.[0-9])?', action):
+            if not 0 < abs(float(action.split(':')[1])) <= 180:
                 raise ValueError('Indica un giro entre −180° y +180°, distinto de cero')
         elif re.fullmatch(r'LIGHT(?:INV)?:[0-9]{1,3}', action):
             if not 0 <= int(action.split(':')[1]) < 360:
                 raise ValueError('El azimut inicial debe estar entre 0° y 359°')
         elif re.fullmatch(r'AXIS_[XYZ][+-]', action):
             pass
-        elif action not in ('ARM','STOP','STATUS','DETUMBLE','PROFILE_AIR','PROFILE_BIDIR','ENABLE','BENCH_ARM','RESULTS','BRAKE'):
+        elif action not in ('ARM','STOP','STATUS','DETUMBLE','PROFILE_AIR','PROFILE_BIDIR','ENABLE','BENCH_ARM','RESULTS','BRAKE','SWEEP'):
             if not re.fullmatch(r'[+-]?[0-9]{1,2}', action) or not 1 <= abs(int(action)) <= 15:
                 raise ValueError('El nivel de prueba debe estar entre −15 y +15, distinto de cero')
             args = [str(int(action))]
@@ -363,7 +367,8 @@ class PicoBridge:
                                 mode, *angles = map(int, maneuver.groups())
                                 if mode and all(-32768 <= angle <= 32767 for angle in angles):
                                     keys = (('brake_to_5rpm_s', 'brake_initial_rpm') if mode == 1 else
-                                            ('spin_seconds', 'spin_pwm', 'spin_result') if mode == 4 else
+                                            ('spin_seconds', 'spin_pwm', 'spin_result', 'spin_body_to_5rpm_s') if mode == 4 else
+                                            ('rotation_deg', 'target_deg', 'turn_overshoot_deg', 'turn_peak_dps') if mode == 2 else
                                             ('rotation_deg', 'target_deg', 'reference_deg', 'light_azimuth_deg'))
                                     self.wheel.update(maneuver=mode, **{
                                         key: None if angle == -32768 else angle / 10

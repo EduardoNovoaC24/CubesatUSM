@@ -258,71 +258,23 @@
       <button class="cmd-btn" id="adcs-export" type="button" disabled>Exportar registros CSV</button>
     </div>
     <div class="web-card">
-      <h3>Giro manual</h3>
-      <div class="command-grid">
-        <button class="cmd-btn" id="turn-arm" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Preparar rueda</button>
-        <button class="cmd-btn danger" id="spin-brake-manual" data-cmd="WHEEL" data-value="BRAKE" disabled>Frenar giro manual</button>
-      </div>
-      <div class="control-row">
-        <label for="manual-threshold">Umbral de giro (&deg;/s)</label>
-        <input id="manual-threshold" type="number" min="5" max="45" value="15" required>
-        <label for="manual-timeout">Espera (s)</label>
-        <input id="manual-timeout" type="number" min="5" max="60" value="30" required>
-        <button class="cmd-btn" id="manual-auto" data-cmd="WHEEL" data-prefix="AUTO_BRAKE" disabled>Esperar giro manual</button>
-      </div>
-      <p class="hint">La detecci&oacute;n estima el soltado por la aceleraci&oacute;n angular. La rueda tiene un l&iacute;mite de momento y puede quedar giro residual.</p>
-      <p class="hint" id="manual-ready-status" role="status">Esperando el estado de la rueda.</p>
-      <p class="hint">Cuando los jueces suelten el CubeSat, pulsa Frenar giro manual. El resultado aparece en el estado y en los gr&aacute;ficos de frenado.</p>
-      <h3>Giro temporizado</h3>
+      <h3>Estabilización autónoma</h3>
       <div class="command-row">
         <label for="spin-axis">Eje y polaridad del montaje</label>
         <select id="spin-axis"><option>X+</option><option>X-</option><option>Y+</option><option>Y-</option><option selected>Z+</option><option>Z-</option></select>
         <button class="cmd-btn" data-cmd="WHEEL" data-arg="spin-axis" data-prefix="AXIS_" disabled>Aplicar eje</button>
       </div>
-      <div class="control-row">
-        <label for="spin-pwm">PWM del ESC (µs)</label>
-        <input id="spin-pwm" type="number" min="1425" max="1575" step="5" value="1505" required>
-        <label for="spin-seconds">Duración (s)</label>
-        <input id="spin-seconds" type="number" min="1" max="60" step="1" value="5" required>
-      </div>
       <div class="command-grid">
-        <button class="cmd-btn" id="spin-start" data-cmd="WHEEL" data-prefix="RUN" disabled>Encender</button>
-        <button class="cmd-btn danger" id="spin-brake" data-cmd="WHEEL" data-value="BRAKE" disabled>Frenar</button>
-        <button class="cmd-btn" id="spin-disarm" data-cmd="WHEEL" data-value="STOP" disabled>Desarmar ESC</button>
+        <button class="cmd-btn" id="turn-arm" data-cmd="WHEEL" data-value="BENCH_ARM" disabled>Preparar rueda</button>
+        <button class="cmd-btn" id="manual-auto" data-cmd="WHEEL" data-value="AUTO_BRAKE" disabled>Iniciar estabilización</button>
+        <button class="cmd-btn danger" id="spin-disarm" data-cmd="WHEEL" data-value="STOP" disabled>Desarmar ESC</button>
       </div>
+      <p class="hint">Con el CubeSat quieto, prepara la rueda e inicia la prueba. El OBC detecta el giro con el giroscopio y decide cuándo frenar y volver a neutro.</p>
       <p class="hint" id="spin-status" role="status">Esperando telemetría de la rueda.</p>
       <div class="metric-list">
-        <div><small id="spin-clock-label">Tiempo de giro</small><b id="spin-elapsed">—</b></div>
-        <div><small>Duración ordenada</small><b id="spin-duration">—</b></div>
-        <div><small>CubeSat de &gt;60 a &lt;5 RPM</small><b id="spin-to-5rpm">&mdash;</b></div>
+        <div><small>Tiempo de frenado</small><b id="spin-elapsed">&mdash;</b></div>
+        <div><small>Tiempo hasta bajar de 5 RPM</small><b id="spin-to-5rpm">&mdash;</b></div>
       </div>
-      <p class="hint">Puedes girar el CubeSat a mano y pulsar Frenar, o usar Encender y despu&eacute;s Frenar. La STM32 mide el giro durante el primer segundo y luego corrige. El reposo se confirma tras 1 s con velocidad y aceleraci&oacute;n angular cerca de cero. Desarmar ESC termina la correcci&oacute;n.</p>
-      <h3>Prueba angular y seguimiento de luz</h3>
-      <div class="command-grid">
-        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:45" disabled>+45&deg;</button>
-        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:-45" disabled>-45&deg;</button>
-        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:90" disabled>+90&deg;</button>
-        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:-90" disabled>-90&deg;</button>
-        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-value="TURN:180" disabled>+180&deg;</button>
-        <button class="cmd-btn" id="light-follow" data-cmd="WHEEL" data-value="LIGHT:0" disabled>Seguir luz</button>
-      </div>
-      <div class="control-row">
-        <label for="turn-angle-input">&Aacute;ngulo objetivo (&deg;)</label>
-        <input id="turn-angle-input" type="number" min="-180" max="180" step="0.1" value="45" required>
-        <button class="cmd-btn" data-turn data-cmd="WHEEL" data-prefix="ANGLE" disabled>Ejecutar giro</button>
-      </div>
-      <div class="metric-list">
-        <div><small>Giro estimado</small><b id="turn-angle">—</b></div>
-        <div><small>Error al objetivo</small><b id="turn-error">&mdash;</b></div>
-        <div><small>Tiempo al umbral</small><b id="turn-time">&mdash;</b></div>
-        <div><small>Sobrepaso m&aacute;ximo</small><b id="turn-overshoot">&mdash;</b></div>
-        <div><small>Velocidad angular m&aacute;xima</small><b id="turn-peak">&mdash;</b></div>
-      </div>
-      <p class="hint" id="turn-status" role="status">Esperando telemetría de la rueda.</p>
-      <h3>Prueba de oscilaci&oacute;n</h3>
-      <button class="cmd-btn" id="spin-sweep" data-cmd="WHEEL" data-value="SWEEP" disabled>Probar izquierda y derecha</button>
-      <p class="hint">Alterna el PWM alrededor de 1500 &micro;s con amplitudes de 30, 20 y 10 &micro;s. Desarmar ESC interrumpe la prueba.</p>
-      <p id="spin-sweep-status" class="hint" role="status"></p>
       <h3>Respuesta del frenado</h3>
       <p class="hint">Velocidad angular Z (&deg;/s) &middot; referencia cero</p>
       <svg class="chart-area" id="plot-brake-rate" role="img" aria-label="Velocidad angular durante el frenado"></svg>
@@ -455,7 +407,7 @@ function render(data){
 async function poll(){try{const r=await (window.stationRequest || fetch)('/api/aircraft',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);render(await r.json());}catch(e){document.getElementById('status').textContent='Sin conexión con el servidor local';document.getElementById('statusdot').className='dot error';}finally{setTimeout(poll,1000);}}
 poll();
 </script>
-<script defer src="./assets/cubesat_web.js?v=40548a3d91"></script>
+<script defer src="./assets/cubesat_web.js?v=auto-brake"></script>
 <script defer src="./assets/galaxy.js?v=29eae427d5"></script>
 </body>
 </html>

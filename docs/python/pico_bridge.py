@@ -126,7 +126,7 @@ def validate_command(name: str, args: list) -> str:
                 raise ValueError('El azimut inicial debe estar entre 0° y 359°')
         elif re.fullmatch(r'AXIS_[XYZ][+-]', action):
             pass
-        elif action not in ('ARM','STOP','STATUS','DETUMBLE','PROFILE_AIR','PROFILE_BIDIR','ENABLE','BENCH_ARM','RESULTS','BRAKE','SWEEP'):
+        elif action not in ('ARM','STOP','STATUS','DETUMBLE','PROFILE_AIR','PROFILE_BIDIR','ENABLE','BENCH_ARM','RESULTS','BRAKE','SWEEP','AUTO_BRAKE'):
             if not re.fullmatch(r'[+-]?[0-9]{1,2}', action) or not 1 <= abs(int(action)) <= 15:
                 raise ValueError('El nivel de prueba debe estar entre −15 y +15, distinto de cero')
             args = [str(int(action))]

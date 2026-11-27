@@ -22,7 +22,6 @@
   });
   let picoState={capable:false,connected:false};
   let spinStatusAt=0;
-  let spinCommandId;
   let turnRequestInFlight=false;
   let turnCommandId;
   const lanKey=document.getElementById('lan-key');
@@ -105,83 +104,32 @@
     }
     add('text',{x:526,y:210,'text-anchor':'end',fill:'#b97a83','font-size':11},'Últimos '+Math.round(dt)+' s');
   }
-  function renderTimedSpin(wheel, adcsFresh, commands){
-    const timed=adcsFresh&&wheel.maneuver===4;
-    const sweep=timed&&wheel.spin_result===9;
-    const motion=timed&&wheel.spin_result===0&&[1,3].includes(wheel.state);
-    const braking=timed&&wheel.detumble===1;
-    const resultLabels=['Girando','Giro estabilizado.','Desarmado por operador.','Detenido por pérdida de enlace.','Detenido por una lectura de giro inválida.','No se alcanzó el PWM pedido.','Frenado interrumpido: no se estabilizó.','Esperando giro manual.','Se agotó la espera de giro manual.'];
-    const pending=commands?.find(cmd=>cmd.id===spinCommandId);
-    const waiting=spinCommandId!==undefined&&(!pending||['EN COLA','PICO QUEUED','PICO SENT'].includes(pending.state));
-    if(spinCommandId!==undefined&&!waiting)spinCommandId=undefined;
-    const block=!adcsFresh?'Esperando telemetría reciente de la rueda.':
-      !wheel.gyro_calibrated?'Espera la calibración del giroscopio con el CubeSat quieto.':
-      wheel.state!==0?'La rueda debe estar desarmada.':
-      !Number.isFinite(wheel.body_rpm)?'Esperando una lectura válida del giroscopio.':'';
-    document.getElementById('spin-start').disabled=waiting||!picoState.connected||!picoState.capable;
-    const brake=document.getElementById('spin-brake');
-    const connected=picoState.connected&&picoState.capable;
-    brake.disabled=!connected;
-    document.getElementById('spin-sweep').disabled=!connected||!adcsFresh||wheel.state!==0;
-    document.getElementById('spin-brake-manual').disabled=!connected;
-    document.getElementById('spin-disarm').disabled=!connected;
-    document.getElementById('spin-status').textContent=waiting?'Esperando el ACK del STM32.':
-      motion&&wheel.state===1?(wheel.spin_seconds==null?'Armando el ESC para frenar el giro manual.':'Armando el ESC.'):
-      braking&&wheel.spin_result===1?'Manteniendo el reposo. El control sigue activo.':
-      braking&&Number.isFinite(wheel.elapsed_s)&&wheel.elapsed_s<1?'Midiendo el sentido y la velocidad angular.':
-      braking?'Frenando en el eje aplicado. El reposo se confirma tras 1 s cerca de cero.':
-      motion?'Giro temporizado en curso.':
-      timed&&wheel.spin_result?resultLabels[wheel.spin_result]||block:
-      block||'Listo para iniciar el giro.';
-    document.getElementById('spin-elapsed').textContent=timed?fmt(wheel.elapsed_s,' s',1):'—';
-    document.getElementById('spin-clock-label').textContent=timed&&wheel.detumble?'Tiempo de frenado':'Tiempo de giro';
-    document.getElementById('spin-to-5rpm').textContent=timed?fmt(wheel.spin_body_to_5rpm_s,' s',1):'?';
-    document.getElementById('spin-duration').textContent=timed?fmt(wheel.spin_seconds,' s',0):'—';
-    document.getElementById('manual-ready-status').textContent=!connected?'Conecta el Pico LoRa.':
-      !adcsFresh?'Esperando el estado de la rueda.':
-      timed&&wheel.spin_result===7?'Esperando giro manual en neutro.':
-      timed&&wheel.spin_result===8?'Terminó la espera sin detectar un giro.':
-      wheel.state===2&&wheel.profile===2?'Rueda preparada en neutro. Los jueces ya pueden girar el CubeSat.':
-      wheel.state===1?'Preparando el ESC en neutro.':
-      wheel.state===0?'Prepara la rueda antes de que los jueces giren el CubeSat.':
-      'Rueda en maniobra. Desarma el ESC para preparar otra prueba.';
-    document.getElementById('spin-sweep-status').textContent=sweep?
-      (wheel.state===1?'Armando en neutro.':'Alternando el sentido con amplitud decreciente.'):
-      timed&&wheel.spin_result===10?'Secuencia terminada.':'';
-    if(motion||braking||sweep)void keepTimedLink();
-  }
-  function renderTurn(wheel, fresh, commands){
+  function renderStabilization(wheel, fresh, commands){
     const command=commands?.find(cmd=>cmd.id===turnCommandId);
     const waiting=turnRequestInFlight||(turnCommandId!==undefined&&
       (!command||['EN COLA','PICO QUEUED','PICO SENT'].includes(command.state)));
     if(!waiting)turnCommandId=undefined;
-    const available=fresh&&picoState.connected&&picoState.capable&&
+    const connected=picoState.connected&&picoState.capable;
+    const timed=fresh&&wheel.maneuver===4;
+    const waitingForSpin=timed&&wheel.spin_result===7;
+    const braking=timed&&wheel.detumble===1;
+    const ready=connected&&fresh&&wheel.state===2&&wheel.profile===2&&
       wheel.axis<3&&wheel.gyro_calibrated&&Number.isFinite(wheel.body_rpm);
-    const active=fresh&&wheel.maneuver===2&&wheel.detumble===1;
-    const turn=fresh&&wheel.maneuver===2&&Number.isFinite(wheel.target_deg);
-    const ready=available&&wheel.state===2&&wheel.profile===2;
-    document.getElementById('turn-arm').disabled=!picoState.connected||!picoState.capable;
-    const canStart=ready&&!waiting&&Math.abs(wheel.body_rpm)<=0.33&&wheel.spin_result!==7;
-    document.querySelectorAll('[data-turn]').forEach(button=>button.disabled=!canStart);
-    document.getElementById('manual-auto').disabled=!canStart;
-    document.getElementById('turn-angle').textContent=turn?fmt(wheel.rotation_deg,'°',1):'—';
-    document.getElementById('turn-error').textContent=turn&&Number.isFinite(wheel.rotation_deg)?
-      fmt(wheel.target_deg-wheel.rotation_deg,'°',1):'—';
-    document.getElementById('turn-time').textContent=turn?fmt(wheel.elapsed_s,' s',2):'—';
-    document.getElementById('turn-overshoot').textContent=turn?fmt(wheel.turn_overshoot_deg,'°',1):'—';
-    document.getElementById('turn-peak').textContent=turn?fmt(wheel.turn_peak_dps,' °/s',1):'—';
-    const results={2:'La STM32 confirm? reposo dentro de la tolerancia.',3:'Tiempo límite alcanzado.',
-      4:'Lectura de giro inválida.',5:'Giro detenido.',6:'Límite de la rueda alcanzado.',
-      7:'El giro se alej? del objetivo.',8:'Se perdi? el enlace.'};
-    document.getElementById('turn-status').textContent=waiting?'Esperando confirmación de la STM32.':
-      !fresh?'Esperando telemetría de la rueda.':
-      active?'Girando hacia '+fmt(wheel.target_deg,'°',1)+'.':
-      wheel.state===1?'Armando el ESC.':
-      ready?'Rueda armada. Puedes iniciar la prueba.':
-      turn&&results[wheel.detumble]?results[wheel.detumble]:
-      !available?'Conecta el Pico y verifica el eje y la calibración del giroscopio.':
-      'Con el CubeSat quieto, pulsa Preparar rueda.';
-    if(active||(fresh&&wheel.state===2))void keepTimedLink();
+    document.getElementById('turn-arm').disabled=!connected||!fresh||wheel.state!==0;
+    document.getElementById('manual-auto').disabled=!ready||waiting||waitingForSpin;
+    document.getElementById('spin-disarm').disabled=!connected;
+    const results={1:'Reposo confirmado. Rueda en neutro.',2:'Desarmado por operador.',
+      3:'Frenado detenido por pérdida de enlace.',4:'Lectura del giroscopio inválida.',
+      5:'No se alcanz? el PWM solicitado.',6:'El OBC interrumpi? el frenado.',
+      7:'Esperando detectar giro. Rueda en neutro.',8:'Termin? la espera sin detectar un giro v?lido.'};
+    document.getElementById('spin-status').textContent=waiting?'Esperando confirmación del OBC.':
+      !connected?'Conecta el Pico LoRa.':!fresh?'Esperando telemetría de la rueda.':
+      braking?'El OBC está frenando con el giroscopio.':
+      (timed&&results[wheel.spin_result])||(wheel.state===1?'Preparando el ESC en neutro.':
+      ready?'Rueda preparada en neutro.':'Con el CubeSat quieto, prepara la rueda.');
+    document.getElementById('spin-elapsed').textContent=timed&&wheel.detumble?fmt(wheel.elapsed_s,' s',1):'—';
+    document.getElementById('spin-to-5rpm').textContent=timed?fmt(wheel.spin_body_to_5rpm_s,' s',1):'—';
+    if(ready||braking)void keepTimedLink();
   }
   async function keepTimedLink(){
     if((lanKey&&!lanKey.value.trim())||performance.now()-spinStatusAt<8000)return;
@@ -243,7 +191,6 @@
       el.classList.toggle('brightest',leaders.includes(face));
     });
     const connected=picoState.connected&&picoState.capable;
-    document.getElementById('light-follow').disabled=!connected;
     const results={3:'Tiempo de prueba agotado.',4:'Lectura de giro inválida.',5:'Seguimiento detenido.',
       6:'Límite de la rueda alcanzado.',7:'Giro fuera del rango de control.',8:'Se perdió el enlace.',
       9:'La luz dejó de tener una dirección clara.'};
@@ -374,8 +321,7 @@
     document.getElementById('adcs-sensors').textContent=adcsFresh?
       (wheel.gyro_calibrated?'Giro calibrado':'Giro sin calibrar')+' · '+
       (wheel.fusion_9dof?'Fusión 9DOF':'Fusión 6DOF'):'Esperando datos del GY‑91';
-    renderTimedSpin(wheel,adcsFresh,data.commands);
-    renderTurn(wheel,adcsFresh,data.commands);
+    renderStabilization(wheel,adcsFresh,data.commands);
     const brakeHistory=(data.adcs_history||[]).map(sample=>({
       t:sample.t,
       rate:Number.isFinite(sample.body_rpm)?6*sample.body_rpm:null,
@@ -412,45 +358,22 @@
       document.getElementById('pico-status-1').textContent='Sin conexión con backend';
       document.getElementById('relay-status').textContent='Salida del relé: Sin confirmación';
       document.getElementById('wheel-state').textContent='Sin conexión con el servidor';
-      document.getElementById('manual-ready-status').textContent='Sin datos del panel.';
       document.getElementById('spin-status').textContent='Sin conexión con el panel.';
       renderMissionScene(null,false);
-      document.getElementById('turn-status').textContent='Sin conexión con el panel.';
       document.querySelectorAll('[data-cmd="WHEEL"]').forEach(btn=>btn.disabled=true);
     }
   }
   document.querySelectorAll('[data-cmd]').forEach(btn=>btn.addEventListener('click',async()=>{
     if(!picoState.connected||!picoState.capable)return;
-    if(btn.id==='spin-sweep'&&!window.confirm('La rueda va a invertir el giro. Confirma que puede girar libremente.'))return;
     if(btn.dataset.confirm==='true'&&!window.confirm('¿Enviar '+btn.dataset.cmd+' a la STM32 vía LoRa? La aplicación no confirmará su aplicación hasta recibir un ACK.'))return;
     let args=btn.dataset.value?[btn.dataset.value]:
       btn.dataset.arg?[document.getElementById(btn.dataset.arg).value]:[];
     const msg=document.getElementById(btn.dataset.cmd==='WHEEL'?'wheel-command-response':'command-response');
     if(btn.dataset.arg&&!document.getElementById(btn.dataset.arg).reportValidity())return;
-    if(btn.dataset.prefix==='RUN'){
-      const pulse=document.getElementById('spin-pwm');
-      const duration=document.getElementById('spin-seconds');
-      if(!pulse.reportValidity()||!duration.reportValidity())return;
-      if(pulse.valueAsNumber===1500){msg.textContent='1500 ?s es neutro. Elige un PWM de giro.';return;}
-      args=['RUN:'+pulse.valueAsNumber+':'+duration.valueAsNumber];
-      btn.disabled=true;
-    }else if(btn.dataset.prefix==='ANGLE'){
-      const angle=document.getElementById('turn-angle-input');
-      if(!angle.reportValidity()||angle.valueAsNumber===0){
-        msg.textContent='Ingresa un angulo distinto de cero.';
-        return;
-      }
-      args=['TURN:'+angle.valueAsNumber.toFixed(1)];
-    }else if(btn.dataset.prefix==='AUTO_BRAKE'){
-      const threshold=document.getElementById('manual-threshold');
-      const timeout=document.getElementById('manual-timeout');
-      if(!threshold.reportValidity()||!timeout.reportValidity())return;
-      if(!window.confirm('La rueda puede empezar a corregir de forma automatica. Confirma que el cubo puede girar libremente.'))return;
-      args=['BRK:'+threshold.valueAsNumber+':'+timeout.valueAsNumber];
-    }else if(btn.dataset.prefix==='AXIS_'){
+    if(btn.dataset.prefix==='AXIS_'){
       args=['AXIS_'+args[0]];
     }
-    const turnRequest=btn.hasAttribute('data-turn')||btn.id==='manual-auto'||btn.id==='light-follow';
+    const turnRequest=btn.id==='manual-auto';
     if(turnRequest){
       if(turnRequestInFlight||turnCommandId!==undefined)return;
       turnRequestInFlight=true;
@@ -461,7 +384,6 @@
     try{
       const r=await (window.stationRequest || fetch)('/api/pico/command',commandRequest({command:btn.dataset.cmd,args}));
       const x=await r.json();if(!r.ok)throw Error(x.error||'No se pudo encolar');
-      if(btn.dataset.prefix==='RUN'){spinCommandId=x.id;spinStatusAt=-Infinity;}
       if(turnRequest){turnCommandId=x.id;spinStatusAt=-Infinity;}
       msg.textContent='#'+x.id+' en cola; esperando respuesta de la STM32 (NO aplicado todavía)';
     }catch(err){

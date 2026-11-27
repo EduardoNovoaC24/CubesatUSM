@@ -14,9 +14,9 @@ La web estática usa Web Serial y ejecuta en el navegador los mismos analizadore
 
 ### Azimut
 
-Actualiza el binario STM32 y el sketch Pico desde la misma revisión. Aplica el eje y la polaridad con la rueda desarmada. Con el CubeSat quieto y el giro calibrado, elige un PWM entre 1505 y 1575 microsegundos y una duración de 1 a 60 segundos. **Encender** arma el ESC y aplica el PWM. El contador empieza al alcanzarlo.
+En GitHub Pages, abre **Azimut**. Aplica el eje y la polaridad con la rueda desarmada y espera la calibración del giroscopio con el CubeSat quieto. Gira el CubeSat, suéltalo y pulsa **Frenar**. El STM32 arma el ESC en neutro si hace falta y aplica la corrección según la velocidad y el sentido medidos.
 
-**Frenar** inicia la compensación por giroscopio en el STM32. Al agotarse el tiempo, el STM32 inicia el mismo frenado. Mientras frena, el segundo botón permite desarmar el ESC. El firmware detiene la rueda si pierde el enlace o la lectura válida del giroscopio.
+El OBC vuelve a neutro al confirmar menos de 5 RPM durante 0,3 s en el eje configurado. El plazo total desde que recibe la orden es de 10 s. El panel indica si vence el plazo o si el OBC interrumpe la maniobra. **Desarmar ESC** permite detenerla en cualquier momento.
 
 Los cuatro fotodiodos llegan desde el Arduino Nano por UART4 a 115200 baudios, 8N1. Conecta D1/TX del Nano a PC11 del STM32 (CN7 pin 2) mediante el divisor de 5 V a 3,3 V y conecta GND común. La trama ASCII es `PHOTO,675,650,320,120` seguida de CRLF. El firmware desactiva la captura de luz por los antiguos pines ADC y reenvía A0 a A3 usando el bloque binario LIGHT existente. Una lectura vencida se muestra como ausente.
 

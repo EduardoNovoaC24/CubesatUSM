@@ -22,8 +22,8 @@
   });
   let picoState={capable:false,connected:false};
   let spinStatusAt=0;
-  let turnRequestInFlight=false;
-  let turnCommandId;
+  let brakeRequestInFlight=false;
+  let brakeCommandId;
   const lanKey=document.getElementById('lan-key');
   const lanOperator=document.getElementById('lan-operator');
   const lanStatus=document.getElementById('lan-status');
@@ -105,31 +105,35 @@
     add('text',{x:526,y:210,'text-anchor':'end',fill:'#b97a83','font-size':11},'Últimos '+Math.round(dt)+' s');
   }
   function renderStabilization(wheel, fresh, commands){
-    const command=commands?.find(cmd=>cmd.id===turnCommandId);
-    const waiting=turnRequestInFlight||(turnCommandId!==undefined&&
+    const command=commands?.find(cmd=>cmd.id===brakeCommandId);
+    const waiting=brakeRequestInFlight||(brakeCommandId!==undefined&&
       (!command||['EN COLA','PICO QUEUED','PICO SENT'].includes(command.state)));
-    if(!waiting)turnCommandId=undefined;
+    if(!waiting)brakeCommandId=undefined;
     const connected=picoState.connected&&picoState.capable;
     const timed=fresh&&wheel.maneuver===4;
-    const waitingForSpin=timed&&wheel.spin_result===7;
     const braking=timed&&wheel.detumble===1;
-    const ready=connected&&fresh&&wheel.state===2&&wheel.profile===2&&
-      wheel.axis<3&&wheel.gyro_calibrated&&Number.isFinite(wheel.body_rpm);
-    document.getElementById('turn-arm').disabled=!connected||!fresh||wheel.state!==0;
-    document.getElementById('manual-auto').disabled=!ready||waiting||waitingForSpin;
+    const arming=timed&&wheel.state===1;
+    const gyroReady=fresh&&wheel.axis<3&&wheel.gyro_calibrated&&Number.isFinite(wheel.body_rpm);
+    const canBrake=connected&&gyroReady&&(wheel.state===0||
+      (wheel.state===2&&wheel.profile===2&&wheel.pulse===1500&&wheel.spin_result!==7));
+    document.getElementById('spin-brake').disabled=!canBrake||waiting;
     document.getElementById('spin-disarm').disabled=!connected;
-    const results={1:'Reposo confirmado. Rueda en neutro.',2:'Desarmado por operador.',
+    const results={1:'Menos de 5 RPM confirmadas. Rueda en neutro.',2:'Desarmado por operador.',
       3:'Frenado detenido por pérdida de enlace.',4:'Lectura del giroscopio inválida.',
-      5:'No se alcanz? el PWM solicitado.',6:'El OBC interrumpi? el frenado.',
-      7:'Esperando detectar giro. Rueda en neutro.',8:'Termin? la espera sin detectar un giro v?lido.'};
+      5:'No se alcanzó el PWM solicitado.',6:'El OBC interrumpió el frenado.'};
+    const errors={BRAKE_GYRO_UNAVAILABLE:'El OBC no tiene una lectura válida del giroscopio.',
+      BRAKE_RATE_LIMIT:'El giro supera el rango permitido para frenar.',WAIT_FOR_STOP:'Espera a que el ESC termine de desarmarse.'};
     document.getElementById('spin-status').textContent=waiting?'Esperando confirmación del OBC.':
       !connected?'Conecta el Pico LoRa.':!fresh?'Esperando telemetría de la rueda.':
-      braking?'El OBC está frenando con el giroscopio.':
-      (timed&&results[wheel.spin_result])||(wheel.state===1?'Preparando el ESC en neutro.':
-      ready?'Rueda preparada en neutro.':'Con el CubeSat quieto, prepara la rueda.');
+      command?.state==='ERR'?(errors[command.detail]||'El OBC rechazó el frenado.'):
+      arming?'Armando el ESC en neutro.':braking?'Frenando con el giroscopio.':
+      timed&&wheel.detumble===3?'Se agotó el plazo de frenado. Rueda en neutro.':
+      timed&&wheel.detumble===7?'El giro aumentó durante la corrección. Revisa la polaridad del eje.':
+      (timed&&results[wheel.spin_result])||(!gyroReady?'Espera una lectura válida del giroscopio.':
+      canBrake?'Listo para frenar.':'Espera a que termine la maniobra de la rueda.');
     document.getElementById('spin-elapsed').textContent=timed&&wheel.detumble?fmt(wheel.elapsed_s,' s',1):'—';
     document.getElementById('spin-to-5rpm').textContent=timed?fmt(wheel.spin_body_to_5rpm_s,' s',1):'—';
-    if(ready||braking)void keepTimedLink();
+    if(arming||braking)void keepTimedLink();
   }
   async function keepTimedLink(){
     if((lanKey&&!lanKey.value.trim())||performance.now()-spinStatusAt<8000)return;
@@ -373,10 +377,10 @@
     if(btn.dataset.prefix==='AXIS_'){
       args=['AXIS_'+args[0]];
     }
-    const turnRequest=btn.id==='manual-auto';
-    if(turnRequest){
-      if(turnRequestInFlight||turnCommandId!==undefined)return;
-      turnRequestInFlight=true;
+    const brakeRequest=btn.id==='spin-brake';
+    if(brakeRequest){
+      if(brakeRequestInFlight||brakeCommandId!==undefined)return;
+      brakeRequestInFlight=true;
       btn.disabled=true;
     }
     msg.textContent='Enviando solicitud...';
@@ -384,13 +388,13 @@
     try{
       const r=await (window.stationRequest || fetch)('/api/pico/command',commandRequest({command:btn.dataset.cmd,args}));
       const x=await r.json();if(!r.ok)throw Error(x.error||'No se pudo encolar');
-      if(turnRequest){turnCommandId=x.id;spinStatusAt=-Infinity;}
+      if(brakeRequest){brakeCommandId=x.id;spinStatusAt=-Infinity;}
       msg.textContent='#'+x.id+' en cola; esperando respuesta de la STM32 (NO aplicado todavía)';
     }catch(err){
       msg.textContent='Error: '+err.message;
       if(lanFeedback)lanFeedback.textContent=err.message;
     }finally{
-      if(turnRequest)turnRequestInFlight=false;
+      if(brakeRequest)brakeRequestInFlight=false;
     }
   }));
   document.getElementById('adcs-export').addEventListener('click',()=>{
